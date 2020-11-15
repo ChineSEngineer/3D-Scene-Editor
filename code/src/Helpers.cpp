@@ -1,7 +1,10 @@
 #include "Helpers.h"
 
+#include "macro.h"
+
 #include <iostream>
 #include <fstream>
+#include <streambuf>
 
 void VertexArrayObject::init()
 {
@@ -48,11 +51,13 @@ void ElementBufferObject::bind()
 bool Program::init(
   const std::string &vertex_shader_string,
   const std::string &fragment_shader_string,
+  const std::string &geometry_shader_string,
   const std::string &fragment_data_name)
 {
   using namespace std;
   vertex_shader = create_shader_helper(GL_VERTEX_SHADER, vertex_shader_string);
   fragment_shader = create_shader_helper(GL_FRAGMENT_SHADER, fragment_shader_string);
+  geometry_shader = create_shader_helper(GL_GEOMETRY_SHADER, geometry_shader_string);
 
   if (!vertex_shader || !fragment_shader)
     return false;
@@ -61,6 +66,9 @@ bool Program::init(
 
   glAttachShader(program_shader, vertex_shader);
   glAttachShader(program_shader, fragment_shader);
+  if (geometry_shader != 0) {
+    glAttachShader(program_shader, geometry_shader);
+  }
 
   glBindFragDataLocation(program_shader, 0, fragment_data_name.c_str());
   glLinkProgram(program_shader);
@@ -167,6 +175,40 @@ GLuint Program::create_shader_helper(GLint type, const std::string &shader_strin
   check_gl_error();
 
   return id;
+}
+
+Program ProgramFactory::createWireframeShader(const std::string &fragment_data_name) {
+    Program program;
+    std::string vertex_shader = readShader("../shader/wireframe.vert");
+    std::string fragment_shader = readShader("../shader/wireframe.frag");
+    std::string geometry_shader;
+    program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
+    return program;
+}
+
+Program ProgramFactory::createFlatShader(const std::string &fragment_data_name) {
+    Program program;
+    std::string vertex_shader = readShader("../shader/flatshading.vert");
+    std::string fragment_shader = readShader("../shader/flatshading.frag");
+    std::string geometry_shader = readShader("../shader/flatshading.geom");
+    program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
+    return program;
+}
+
+Program ProgramFactory::createPhongShader(const std::string &fragment_data_name) {
+    Program program;
+    std::string vertex_shader = readShader("../shader/phongshading.vert");
+    std::string fragment_shader = readShader("../shader/phongshading.frag");
+    std::string geometry_shader;
+    program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
+    return program;
+}
+
+std::string ProgramFactory::readShader(const std::string& path) {
+    std::ifstream infile(path, std::ios::binary);
+    ASSERT(infile.is_open(), std::string("Shader file not exists: ") + path);
+    return std::string((std::istreambuf_iterator<char>(infile)),
+                        std::istreambuf_iterator<char>());
 }
 
 void _check_gl_error(const char *file, int line)

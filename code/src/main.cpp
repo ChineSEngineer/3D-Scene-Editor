@@ -4,6 +4,7 @@
 #include "geometry.h"
 #include "macro.h"
 #include "callbacks.h"
+#include "view_control.h"
 
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
@@ -28,7 +29,8 @@
 using namespace CSGY6533;
 
 static Geometry geometry;
-static Callbacks callbacks(geometry);
+static ViewControl view_control;
+static Callbacks callbacks(geometry, view_control);
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -128,36 +130,18 @@ int main(void)
     // A VBO is a data container that lives in the GPU memory
     geometry.init();
     geometry.bind();
-    geometry.addBunny();
 
     // Initialize the OpenGL Program
     // A program controls the OpenGL pipeline and it must contains
     // at least a vertex shader and a fragment shader to be valid
-    Program program;
-    const GLchar* vertex_shader =
-            "#version 150 core\n"
-                    "in vec3 position;"
-                    // "in vec3 color;"
-                    // "out vec3 v_color;"
-                    "uniform mat4 MVPMatrix;"
-                    "void main()"
-                    "{"
-                    "    gl_Position = MVPMatrix * vec4(position, 1.0);"
-                    "}";
-    const GLchar* fragment_shader =
-            "#version 150 core\n"
-                    "out vec4 outColor;"
-                    "uniform vec3 Color;"
-                    "void main()"
-                    "{"
-                    "    outColor = vec4(Color, 1.0);"
-                    "}";
+    std::vector<Program> programs(N_SHADER);
+    programs[WIREFRAME] = ProgramFactory::createWireframeShader("outColor");
+    programs[FLAT] = ProgramFactory::createFlatShader("outColor");
+    programs[PHONG] = ProgramFactory::createPhongShader("outColor");
 
     // Compile the two shaders and upload the binary to the GPU
     // Note that we have to explicitly specify that the output "slot" called outColor
     // is the one that we want in the fragment buffer (and thus on screen)
-    program.init(vertex_shader,fragment_shader,"outColor");
-    program.bind();
 
 
     // The vertex shader wants the position of the vertices as an input.
@@ -177,33 +161,34 @@ int main(void)
     // Update viewport
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    glEnable(GL_DEPTH_TEST);
+    // glDepthFunc(GL_GREATER);
     // Loop until the user closes the window
     while (!glfwWindowShouldClose(window))
     {
         // Bind your VAO (not necessary if you have only one)
         geometry.bind();
 
-        // Bind your program
-        program.bind();
-
         // Set the uniform value depending on the time difference
         auto t_now = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
-        glUniform3f(program.uniform("triangleColor"), (float)(sin(time * 4.0f) + 1.0f) / 2.0f, 0.0f, 0.0f);
+        // glUniform3f(program.uniform("triangleColor"), (float)(sin(time * 4.0f) + 1.0f) / 2.0f, 0.0f, 0.0f);
 
 
 
         // Clear the framebuffer
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+        // glClearDepth(0.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glEnable(GL_DEPTH_TEST);
+        // glEnable(GL_CULL_FACE);
+        // glCullFace(GL_FRONT);
+        // glGetIntegerv(GL_DEPTH_BITS, &i);
 
         // Draw a triangle
         // glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        geometry.draw(program);
+        geometry.draw(programs, view_control);
 
         // Swap front and back buffers
         glfwSwapBuffers(window);
@@ -213,7 +198,9 @@ int main(void)
     }
 
     // Deallocate opengl memory
-    program.free();
+    for (auto&& program : programs) {
+        program.free();
+    }
     geometry.free();
 
     // Deallocate glfw internals

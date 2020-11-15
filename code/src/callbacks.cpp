@@ -154,34 +154,38 @@ void MoveState::keyboardCb(int key, int action) {
 // void MoveState::reset() {
 // }
 
-ColorState::ColorState(Geometry& geometry)
-    : BaseState(geometry) {}
+CameraState::CameraState(Geometry& geometry, ViewControl& view_control)
+    : BaseState(geometry)
+    , m_view_control {view_control} {}
 
-ColorState::~ColorState() {}
+CameraState::~CameraState() {}
 
-void ColorState::keyboardCb(int key, int action) {
-    // if(GLFW_PRESS == action) {
-    //     switch (key) {
-    //         #define SET_POINT_COLOR(xx) \
-    //             case GLFW_KEY_ ##xx :   \
-    //                 m_geometry.paintPoint(m_selected, provided_color[xx - 1]); \
-    //                 break;
-    //         SET_POINT_COLOR(1)
-    //         SET_POINT_COLOR(2)
-    //         SET_POINT_COLOR(3)
-    //         SET_POINT_COLOR(4)
-    //         SET_POINT_COLOR(5)
-    //         SET_POINT_COLOR(6)
-    //         SET_POINT_COLOR(7)
-    //         SET_POINT_COLOR(8)
-    //         SET_POINT_COLOR(9)
-    //         #undef SET_POINT_COLOR
-    //     }
-    //     m_colorVBO.update(m_geometry.getColors());
-    // }
+void CameraState::keyboardCb(int key, int action) {
+    if(GLFW_PRESS == action) {
+        switch (key) {
+            case GLFW_KEY_W:
+                m_view_control.up(0.1);
+                break;
+            case GLFW_KEY_S:
+                m_view_control.down(0.1);
+                break;
+            case GLFW_KEY_A:
+                m_view_control.left(0.1);
+                break;
+            case GLFW_KEY_D:
+                m_view_control.right(0.1);
+                break;
+            case GLFW_KEY_Q:
+                m_view_control.forward(0.1);
+                break;
+            case GLFW_KEY_E:
+                m_view_control.backward(0.1);
+                break;
+        }
+    }
 }
 
-void ColorState::mouseClickCb(int button, int action,
+void CameraState::mouseClickCb(int button, int action,
                               double xworld, double yworld) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if(GLFW_PRESS == action) {
@@ -212,8 +216,10 @@ void DeleteState::mouseClickCb(int button, int action,
     }
 }
 
-Callbacks::Callbacks(Geometry& geometry) : m_geometry {geometry}
-                                         , m_mode {DEFAULT} {
+Callbacks::Callbacks(Geometry& geometry, ViewControl& view_control)
+    : m_geometry {geometry}
+    , m_view_control {view_control}
+    , m_mode {DEFAULT} {
     m_cur = BaseState::ptr(new BaseState(m_geometry));
 }
 
@@ -232,9 +238,9 @@ void Callbacks::toModeMove() {
     m_cur.reset(new MoveState(m_geometry));
 }
 
-void Callbacks::toModeColor() {
-    if (m_mode == COLOR) return;
-    m_cur.reset(new ColorState(m_geometry));
+void Callbacks::toModeCamera() {
+    if (m_mode == CAMERA) return;
+    m_cur.reset(new CameraState(m_geometry, m_view_control));
 }
 
 void Callbacks::toModeDelete() {
@@ -258,6 +264,9 @@ void Callbacks::keyboardCb(int key, int action) {
                 break;
             case  GLFW_KEY_P:
                 toModeDelete();
+                break;
+            case  GLFW_KEY_U:
+                toModeCamera();
                 break;
             default:
                 break;

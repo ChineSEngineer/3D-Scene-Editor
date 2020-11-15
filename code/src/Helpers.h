@@ -138,12 +138,14 @@ public:
   GLuint vertex_shader;
   GLuint fragment_shader;
   GLuint program_shader;
+  GLuint geometry_shader;
 
   Program() : vertex_shader(0), fragment_shader(0), program_shader(0) { }
 
   // Create a new shader from the specified source strings
   bool init(const std::string &vertex_shader_string,
   const std::string &fragment_shader_string,
+  const std::string &geometry_shader_string,
   const std::string &fragment_data_name);
 
   // Select this shader for subsequent draw calls
@@ -163,6 +165,15 @@ public:
 
   GLuint create_shader_helper(GLint type, const std::string &shader_string);
 
+};
+
+class ProgramFactory {
+ public:
+    static Program createWireframeShader(const std::string &fragment_data_name);
+    static Program createFlatShader(const std::string &fragment_data_name);
+    static Program createPhongShader(const std::string &fragment_data_name);
+ private:
+    static std::string readShader(const std::string& shader);
 };
 
 #endif  // __HELPERS_H__

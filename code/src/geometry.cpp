@@ -11,7 +11,8 @@
 namespace CSGY6533 {
 
 Object::Object() : m_model {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f}
-                 , m_color {0.f, 0.f, 0.f} {
+                 , m_color {0.2f, 0.2f, 0.2f}
+                 , m_mode {MODE2} {
     m_vbo.init();
     m_ebo.init();
 }
@@ -21,37 +22,101 @@ void Object::free() {
     m_ebo.free();
 }
 
-void Object::draw(Program& program) {
-    GLint uniColor = program.uniform("Color");
+void Object::draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control) {
+    if (m_mode == MODE1) {
+        drawWireframe(programs, light, view_control);
+    } else if (m_mode == MODE2) {
+        drawFlatShading(programs, light, view_control);
+        // drawWireframe(programs, light, view_control);
+    }
+}
+
+void Object::drawWireframe(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control) {
+    Program program = programs[WIREFRAME];
+    program.bind();
+    glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    GLint uniColor = program.uniform("color");
     glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
     GLint uniMVP = program.uniform("MVPMatrix");
-    glUniformMatrix4fv(uniMVP, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
+    glUniformMatrix4fv(uniMVP, 1, GL_FALSE, glm::value_ptr(view_control.getOrthoProjMatrix() * view_control.getViewMatrix() * getModelMatrix()));
+    // for (int i = 0; i < m_vertices.size(); ++i) {
+    //     std::cout << glm::to_string(view_control.getViewMatrix() * getModelMatrix() * glm::vec4(m_vertices[i], 1.f)) << std::endl;
+    // }
+    // std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     program.bindVertexAttribArray("position",m_vbo);
     m_ebo.bind();
     glUniform3f(program.uniform("triangleColor"), 0.0f, 0.0f, 0.0f);
     glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+    glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+
+
     // glUniform3f(program.uniform("triangleColor"), 1.0f, 1.0f, 1.0f);
     // glDrawElements(GL_LINE_LOOP, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+}
+
+void Object::drawFlatShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control) {
+    Program program = programs[FLAT];
+    program.bind();
+
+    GLint uniColor = program.uniform("color");
+    glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
+    GLint uniMVPMatrix = program.uniform("MVPMatrix");
+    glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(view_control.getOrthoProjMatrix() * view_control.getViewMatrix() * getModelMatrix()));
+    GLint uniModelMatrix = program.uniform("ModelMatrix");
+    glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
+    program.bindVertexAttribArray("position",m_vbo);
+    // GLint uniNormalMatrix = program.uniform("NormalMatrix");
+    // glUniformMatrix4fv(uniNormalMatrix, 1, GL_FALSE, glm::value_ptr(getNormalMatrix()));
+    // GLint uniEyePostion = program.uniform("eyePosition");
+    // glUniform3fv(uniEyePostion, 1, glm::value_ptr(view_control.getEyePosition()));
+    // GLint uniLight = program.uniform("lightPosition");
+    // glUniform3fv(uniLight, 1, glm::value_ptr(light));
+
+    m_ebo.bind();
+    // glUniform3f(program.uniform("triangleColor"), 0.0f, 0.0f, 0.0f);
+    glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+}
+
+void Object::drawPhongShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control) {
+    Program program = programs[FLAT];
+    program.bind();
+    GLint uniColor = program.uniform("color");
+    glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
+    GLint uniMVPMatrix = program.uniform("MVPMatrix");
+    glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
+    GLint uniModelMatrix = program.uniform("ModelMatrix");
+    glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
+    GLint uniNormalMatrix = program.uniform("NormalMatrix");
+    glUniformMatrix4fv(uniNormalMatrix, 1, GL_FALSE, glm::value_ptr(getNormalMatrix()));
+    program.bindVertexAttribArray("position",m_vbo);
+    GLint uniLight = program.uniform("light");
+    glUniform3fv(uniLight, 1, glm::value_ptr(light));
+
+    m_ebo.bind();
+    glUniform3f(program.uniform("triangleColor"), 0.0f, 0.0f, 0.0f);
+    glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 }
 
 void Object::loadFromOffFile(const std::string& path) {
     auto p = OffReader::read(path);
     m_vertices = p.first;
     m_indices = p.second;
-    for (int i = 0; i < m_indices.size(); i+=3) {
-        std::cout << m_indices[i] << " " << m_indices[i + 1] << " " << m_indices[i + 2] << std::endl;
-    }
-    for (int i = 0; i < m_vertices.size(); i+=1) {
-        // m_vertices[i] *= 0.2;
-        // m_vertices[i][1] -= 0.5;
-        std::cout << glm::to_string(m_vertices[i]) << std::endl;
-    }
 }
 
 void Object::update() {
     m_vbo.update(m_vertices);
     m_ebo.update(m_indices);
+    // for (int i = 0; i < m_indices.size(); i+=3) {
+    //     std::cout << m_indices[i] << " " << m_indices[i + 1] << " " << m_indices[i + 2] << std::endl;
+    // }
+    // for (int i = 0; i < m_vertices.size(); i+=1) {
+    //     // m_vertices[i] *= 0.2;
+    //     // m_vertices[i][1] -= 0.5;
+    //     std::cout << glm::to_string(m_vertices[i]) << std::endl;
+    // }
 }
+
+void Object::setDisplayMode(DisplayMode mode) { m_mode =  mode; }
 
 void Object::translate(float x, float y, float z) {
     m_model[0] += x;
@@ -63,6 +128,12 @@ void Object::rotate(float x, float y, float z) {
     m_model[3] += x;
     m_model[4] += y;
     m_model[5] += z;
+    // std::cout << std::endl;
+    // for (int i = 0; i < m_vertices.size(); i+=1) {
+    //     // m_vertices[i] *= 0.2;
+    //     // m_vertices[i][1] -= 0.5;
+    //     std::cout << glm::to_string(glm::vec3(getModelMatrix() * glm::vec4(m_vertices[i], 1.f))) <<  std::endl;
+    // }
 }
 
 void Object::scale(float change) { m_model[6] += change; }
@@ -84,7 +155,6 @@ void Object::unitize() {
         max_y = std::max(max_y, m_vertices[i][1]);
         max_z = std::max(max_z, m_vertices[i][2]);
     }
-    std::cout << min_y << " " << max_y << std::endl;
     float scale = std::max({max_x - min_x, max_y - min_y, max_z - min_z});
     for (int i = 0; i < m_vertices.size(); ++i) {
         m_vertices[i][0] -= (min_x + max_x) / 2;
@@ -122,15 +192,19 @@ glm::mat4 Object::getModelMatrix() const {
     float scale = m_model[6];
     glm::vec3 barycentre = {0.f, 0.f, 0.f};
     glm::mat4 res = glm::translate(glm::mat4(1.f),  glm::vec3(translate_x, translate_y, translate_z)) *
-                    glm::translate(glm::mat4(1.f), barycentre) *
+                    glm::translate(glm::mat4(1.f), - barycentre) *
                     glm::rotate(glm::mat4(1.f), glm::radians(rotate_x), glm::vec3(1.f,0.f,0.f)) *
                     glm::rotate(glm::mat4(1.f), glm::radians(rotate_y), glm::vec3(0.f,1.f,0.f)) *
                     glm::rotate(glm::mat4(1.f), glm::radians(rotate_z), glm::vec3(0.f,0.f,1.f)) *
                     glm::scale(glm::mat4(1.f), glm::vec3(scale)) *
-                    glm::translate(glm::mat4(1.f), - barycentre);
+                    glm::translate(glm::mat4(1.f), barycentre);
     return res;
 }
 
+glm::mat4 Object::getNormalMatrix() const {
+    return glm::mat4(glm::transpose(glm::inverse(getModelMatrix())));
+    // return glm::mat3(1.0);
+}
 
 bool Object::intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
                                const glm::vec3& e, const glm::vec3& d) {
@@ -147,7 +221,7 @@ bool Object::intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm
 }
 
 
-Geometry::Geometry() {}
+Geometry::Geometry() : m_light {1.f, 1.f, 1.f} {}
 
 void Geometry::init() {
     m_vao.init();
@@ -164,9 +238,9 @@ void Geometry::bind() {
     m_vao.bind();
 }
 
-void Geometry::draw(Program& program) {
+void Geometry::draw(std::vector<Program>& programs, ViewControl& view_control) {
     for (auto&& obj : m_objs) {
-        obj.draw(program);
+        obj.draw(programs, m_light, view_control);
     }
 }
 

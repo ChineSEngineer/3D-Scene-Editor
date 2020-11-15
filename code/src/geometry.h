@@ -2,40 +2,64 @@
 #define __GEOMETRY_H__
 
 #include "Helpers.h"
+#include "view_control.h"
 
 #include <glm/glm.hpp> // glm::vec3
 #include <glm/vec3.hpp>
 
 namespace CSGY6533 {
 
+enum ShaderMode {
+    WIREFRAME = 0,
+    FLAT = 1,
+    PHONG = 2,
+    N_SHADER = 3
+};
+
 class Object {
  public:
+    enum DisplayMode {
+        MODE1 = 0,
+        MODE2 = 1,
+        MODE3 = 2,
+        N_MODE = 3
+    };
     Object();
     void free();
-    void draw(Program& program);
+    void draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
     void loadFromOffFile(const std::string& path);
     void unitize();
     void update();
+    void setDisplayMode(DisplayMode mode);
 
     void translate(float x, float y, float z);
     void rotate(float x, float y, float z);
     void scale(float change);
     void color(glm::vec3& color);
 
+
     bool intersectRay(const glm::vec3& e, const glm::vec3& d) const;
 
     glm::mat4 getModelMatrix() const;
+    glm::mat4 getNormalMatrix() const;
 
  private:
     static bool intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
                                   const glm::vec3& e, const glm::vec3& d);
+    void drawWireframe(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
+    void drawFlatShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
+    void drawPhongShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
+
  private:
     std::vector<glm::vec3> m_vertices;
     std::vector<int> m_indices;
-    std::vector<float> m_model; // 0,1,2 - translate, 3,4,5 - rotate, 6 - sacle
-    glm::vec3 m_color; // 0,1,2 - rgb
+    std::vector<float> m_model;  // 0,1,2 - translate, 3,4,5 - rotate, 6 - sacle
+    glm::vec3 m_color;  // 0,1,2 - rgb
+    DisplayMode m_mode;
+    // VertexBufferObject m_normal;
     VertexBufferObject m_vbo;
     ElementBufferObject m_ebo;
+
 };
 
 class Geometry {
@@ -44,7 +68,7 @@ class Geometry {
     void init();
     void free();
     void bind();
-    void draw(Program& program);
+    void draw(std::vector<Program>& programs, ViewControl& view_control);
     void addObjFromOffFile(const std::string& path);
 
     void addBunny();
@@ -58,6 +82,7 @@ class Geometry {
  private:
     std::vector<Object> m_objs;
     VertexArrayObject m_vao;
+    glm::vec3 m_light;
 };
 
 } // CSGY6533

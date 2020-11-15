@@ -47,15 +47,16 @@ class MoveState : public BaseState {
  //    float m_y = 0.f;
 };
 
-class ColorState : public BaseState {
+class CameraState : public BaseState {
  public:
-    ColorState(Geometry& geometry);
-    virtual ~ColorState();
+    CameraState(Geometry& geometry, ViewControl& view_control);
+    virtual ~CameraState();
     void mouseClickCb(int button, int action,
                       double xworld, double yworld) override;
     void keyboardCb(int key, int action) override;
  private:
  //    int m_selected = -1;
+    ViewControl& m_view_control;
 };
 
 class DeleteState : public BaseState {
@@ -68,12 +69,12 @@ class DeleteState : public BaseState {
 
 class Callbacks {
  public:
-    Callbacks(Geometry& geometry);
+    Callbacks(Geometry& geometry, ViewControl& m_view_control);
 
     void toDefaultMode();
     void toModeInsert();
     void toModeMove();
-    void toModeColor();
+    void toModeCamera();
     void toModeDelete();
     void mouseClickCb(int button, int action, double xworld, double yworld);
     void keyboardCb(int key, int action);
@@ -84,11 +85,12 @@ class Callbacks {
         DEFAULT = 0,
         INSERT = 1,
         MOVE = 2,
-        COLOR = 3,
+        CAMERA = 3,
         DELETE = 4
     };
     BaseState::ptr m_cur; 
     Geometry& m_geometry;
+    ViewControl& m_view_control;
     Mode m_mode;
 };
 
