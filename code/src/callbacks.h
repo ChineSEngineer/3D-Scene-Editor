@@ -30,7 +30,7 @@ class InsertState : public BaseState {
 
 class MoveState : public BaseState {
  public:
-    MoveState(Geometry& geometry);
+    MoveState(Geometry& geometry, ViewControl& m_view_control);
     virtual ~MoveState();
     void mouseClickCb(int button, int action,
                       double xworld, double yworld) override;
@@ -42,6 +42,7 @@ class MoveState : public BaseState {
  // bool lbutton_down = false;
     int m_selected = -1;
     static std::vector<glm::vec3> provided_color;
+    ViewControl& m_view_control;
  //    glm::vec2 m_previous;
  //    float m_x = 0.f;
  //    float m_y = 0.f;
@@ -61,10 +62,12 @@ class CameraState : public BaseState {
 
 class DeleteState : public BaseState {
  public:
-    DeleteState(Geometry& geometry);
+    DeleteState(Geometry& geometry, ViewControl& view_control);
     virtual ~DeleteState();
     void mouseClickCb(int button, int action,
                       double xworld, double yworld) override;
+ private:
+    ViewControl& m_view_control;
 };
 
 class Callbacks {

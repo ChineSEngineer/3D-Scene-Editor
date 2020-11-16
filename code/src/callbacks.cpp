@@ -52,8 +52,9 @@ void InsertState::keyboardCb(int key, int action) {
     }
 }
 
-MoveState::MoveState(Geometry& geometry)
-        : BaseState(geometry) {}
+MoveState::MoveState(Geometry& geometry, ViewControl& view_control)
+        : BaseState(geometry)
+        , m_view_control {view_control} {}
 
 MoveState::~MoveState() {
     m_selected = -1;
@@ -65,12 +66,13 @@ void MoveState::mouseClickCb(int button, int action,
         if(GLFW_PRESS == action) {
             glm::vec3 e = {xworld, yworld, 1.f};
             glm::vec3 d = {0.f, 0.f, -1.f}; //TODO: camera
-            for (int i = 0; i < m_geometry.size(); ++i) {
-                if (m_geometry[i].intersectRay(e, d)) {
-                    m_selected = i;
-                    std::cout << "Select: " << m_selected << std::endl;
-                    return;
-                }
+            auto p = m_view_control.getClickRay(xworld, yworld);
+            e = p.first;
+            d = p.second;
+            m_selected = m_geometry.intersectRay(e, d,
+                m_view_control.near(), m_view_control.far());
+            if (m_selected != -1) {
+                std::cout << "Select: " << m_selected << std::endl;
             }
         }
     }
@@ -202,8 +204,10 @@ void CameraState::mouseClickCb(int button, int action,
     }
 }
 
-DeleteState::DeleteState(Geometry& geometry)
-    : BaseState(geometry) {
+DeleteState::DeleteState(Geometry& geometry,
+                         ViewControl& view_control)
+    : BaseState(geometry)
+    , m_view_control {view_control} {
 }
 
 DeleteState::~DeleteState() {}
@@ -214,12 +218,11 @@ void DeleteState::mouseClickCb(int button, int action,
         if(GLFW_PRESS == action) {
             glm::vec3 e = {xworld, yworld, 1.f};
             glm::vec3 d = {0.f, 0.f, -1.f}; // TODO: camera
-            for (int i = 0; i < m_geometry.size(); ++i) {
-                if (m_geometry[i].intersectRay(e, d)) {
-                    m_geometry.deleteObject(i);
-                    std::cout << "Delete: " << i << std::endl;
-                    return;
-                }
+            int selected = m_geometry.intersectRay(e, d,
+                m_view_control.near(), m_view_control.far());
+            m_geometry.deleteObject(selected);
+            if (selected != -1) {
+                std::cout << "Delete: " << selected << std::endl;
             }
         }
     }
@@ -244,7 +247,7 @@ void Callbacks::toModeInsert() {
 
 void Callbacks::toModeMove() {
     if (m_mode == MOVE) return;
-    m_cur.reset(new MoveState(m_geometry));
+    m_cur.reset(new MoveState(m_geometry, m_view_control));
 }
 
 void Callbacks::toModeCamera() {
@@ -254,7 +257,7 @@ void Callbacks::toModeCamera() {
 
 void Callbacks::toModeDelete() {
     if (m_mode == DELETE) return;
-    m_cur.reset(new DeleteState(m_geometry));
+    m_cur.reset(new DeleteState(m_geometry, m_view_control));
 }
 
 void Callbacks::mouseClickCb(int button, int action, double xworld, double yworld) {

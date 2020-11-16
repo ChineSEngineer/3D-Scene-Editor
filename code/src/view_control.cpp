@@ -53,6 +53,17 @@ glm::vec2 ViewControl::worldCoordinateFromView(float x, float y) {
     return {world[0], world[1]};
 }
 
+std::pair<glm::vec3, glm::vec3> ViewControl::getClickRay(float x, float y) {
+    glm::mat4 convert = glm::inverse(getProjMatrix() * getViewMatrix());
+
+    glm::vec4 start = convert * glm::vec4(x, y, -1.f, 1.f);
+    glm::vec4 end   = convert * glm::vec4(x, y, 1.f, 1.f);
+    start /= start[3];
+    end   /= end[3];
+    // std::cout << "start=" << glm::to_string(start) << ", end=" << glm::to_string(end) << std::endl;
+    return {glm::vec3(start), glm::normalize(glm::vec3(end - start))};
+}
+
 
 void ViewControl::left(float length) {
     m_trackball.left(length);
@@ -97,7 +108,6 @@ void ViewControl::setScreenSize(int height, int width) {
 
 
 void ViewControl::Trackball::left(float length) {
-    std::cout << "lengthToDegree=" << lengthToDegree(length) << std::endl;;
     m_phi = std::fmod(m_phi - lengthToDegree(length) + 360, 360.f);
 }
 
@@ -134,7 +144,6 @@ glm::vec3 ViewControl::Trackball::getEyePos() const {
     float y = m_radius * cos(theta);
     float z = m_radius * sin(theta) * cos(phi);
     // std::cout << "r=" << m_radius << ", theta=" << m_theta << ", phi=" << m_phi << std::endl;;
-    std::cout << glm::to_string(glm::vec3(x, y ,z)) << std::endl;
     return {x, y, z};
 }
 

@@ -7,6 +7,7 @@
 #include <glm/glm.hpp> // glm::vec3
 #include <glm/vec3.hpp>
 
+
 namespace CSGY6533 {
 
 enum ShaderMode {
@@ -36,15 +37,14 @@ class Object {
     void scale(float change);
     void color(glm::vec3& color);
 
-
-    bool intersectRay(const glm::vec3& e, const glm::vec3& d) const;
+    std::pair<bool, float> intersectRay(const glm::vec3& e, const glm::vec3& d, float near, float far) const;
 
     glm::mat4 getModelMatrix() const;
     glm::mat3 getNormalMatrix() const;
 
  private:
-    static bool intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
-                                  const glm::vec3& e, const glm::vec3& d);
+    static std::pair<bool, float> intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
+                                  const glm::vec3& e, const glm::vec3& d, float near, float far);
     void drawWireframe(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
     void drawFlatShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
     void drawPhongShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
@@ -69,6 +69,7 @@ class Geometry {
     void init();
     void free();
     void bind();
+    size_t size() const;
     void draw(std::vector<Program>& programs, ViewControl& view_control);
     void addObjFromOffFile(const std::string& path);
 
@@ -77,7 +78,8 @@ class Geometry {
     void addCube();
     void deleteObject(int index);
 
-    size_t size() const;
+    int intersectRay(const glm::vec3& e, const glm::vec3& d, float near, float far) const;
+
     const Object& operator[](size_t index) const;
     Object& operator[](size_t index);
  private:

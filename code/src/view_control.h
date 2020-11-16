@@ -4,11 +4,18 @@
 #include <glm/glm.hpp> // glm::vec3
 #include <glm/vec3.hpp> // glm::vec3
 
+#include <utility>
+
 namespace CSGY6533 {
 
 class ViewControl {
  public:
+
     ViewControl();
+
+    float far() { return m_f; }
+    float near() { return m_n; }
+
     glm::mat4 getViewMatrix();
     glm::mat4 getProjMatrix();
     glm::mat4 getAspectRatioMatrix();
@@ -16,7 +23,8 @@ class ViewControl {
     void setPerspective() { m_project_mode = PERSPECTIVE; }
     void setOrthographic() { m_project_mode = ORTHOGRAPHIC; }
 
-    glm::vec2 worldCoordinateFromView(float x, float y);
+    glm::vec2 worldCoordinateFromView(float x, float y); // TODO: Delete
+    std::pair<glm::vec3, glm::vec3> getClickRay(float x, float y);
 
     void left(float lengh);
     void right(float length);

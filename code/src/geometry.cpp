@@ -69,12 +69,6 @@ void Object::drawFlatShading(std::vector<Program>& programs, glm::vec3& light, V
     GLint uniModelMatrix = program.uniform("ModelMatrix");
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
     program.bindVertexAttribArray("position",m_vbo);
-    // GLint uniNormalMatrix = program.uniform("NormalMatrix");
-    // glUniformMatrix4fv(uniNormalMatrix, 1, GL_FALSE, glm::value_ptr(getNormalMatrix()));
-    // GLint uniEyePostion = program.uniform("eyePosition");
-    // glUniform3fv(uniEyePostion, 1, glm::value_ptr(view_control.getEyePosition()));
-    // GLint uniLight = program.uniform("lightPosition");
-    // glUniform3fv(uniLight, 1, glm::value_ptr(light));
 
     m_ebo.bind();
     glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
@@ -119,9 +113,7 @@ void Object::loadFromOffFile(const std::string& path) {
         glm::vec3 b = m_vertices[index_b];
         glm::vec3 c = m_vertices[index_c];
         
-        // std::cout << "a=" << glm::to_string(a) << ", b=" << glm::to_string(b) << ", c=" << glm::to_string(a) << std::endl;
         glm::vec3 normal = glm::normalize(glm::cross(b - a, c - b));
-        // std::cout << "normal=" << glm::to_string(normal) << std::endl;
         m_vertex_normals[index_a] += normal;
         m_vertex_normals[index_b] += normal;
         m_vertex_normals[index_c] += normal;
@@ -129,12 +121,9 @@ void Object::loadFromOffFile(const std::string& path) {
         count[index_b] += 1;
         count[index_c] += 1;
     }
-    // std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     for (int i = 0; i < n; ++i) {
         if (count[i] != 0) {
-            // std::cout << "count=" << count[i] << ", normal_total=" << glm::to_string(m_vertex_normals[i]) << std::endl;
             m_vertex_normals[i] /= count[i];
-            // std::cout << glm::to_string(m_vertex_normals[i]) << std::endl;
         }
     }
 }
@@ -143,14 +132,6 @@ void Object::update() {
     m_vbo.update(m_vertices);
     m_ebo.update(m_indices);
     m_nbo.update(m_vertex_normals);
-    // for (int i = 0; i < m_indices.size(); i+=3) {
-    //     std::cout << m_indices[i] << " " << m_indices[i + 1] << " " << m_indices[i + 2] << std::endl;
-    // }
-    // for (int i = 0; i < m_vertices.size(); i+=1) {
-    //     // m_vertices[i] *= 0.2;
-    //     // m_vertices[i][1] -= 0.5;
-    //     std::cout << glm::to_string(m_vertices[i]) << std::endl;
-    // }
 }
 
 void Object::setDisplayMode(DisplayMode mode) { m_mode =  mode; }
@@ -165,12 +146,6 @@ void Object::rotate(float x, float y, float z) {
     m_model[3] += x;
     m_model[4] += y;
     m_model[5] += z;
-    // std::cout << std::endl;
-    // for (int i = 0; i < m_vertices.size(); i+=1) {
-    //     // m_vertices[i] *= 0.2;
-    //     // m_vertices[i][1] -= 0.5;
-    //     std::cout << glm::to_string(glm::vec3(getModelMatrix() * glm::vec4(m_vertices[i], 1.f))) <<  std::endl;
-    // }
 }
 
 void Object::scale(float change) { m_model[6] += change; }
@@ -205,18 +180,22 @@ void Object::unitize() {
     }
 }
 
-bool Object::intersectRay(const glm::vec3& e, const glm::vec3& d) const {
+std::pair<bool, float> Object::intersectRay(const glm::vec3& e, const glm::vec3& d, float near, float far) const {
+    float min_t = std::numeric_limits<float>::max();
+    bool intersect = false;
     glm::mat4 transform = getModelMatrix();
     for (int i = 0; i < m_indices.size(); i += 3) {
         glm::vec3 a = glm::vec3(transform * glm::vec4(m_vertices[m_indices[i]], 1.f));
         glm::vec3 b = glm::vec3(transform * glm::vec4(m_vertices[m_indices[i + 1]], 1.f));
         glm::vec3 c = glm::vec3(transform * glm::vec4(m_vertices[m_indices[i + 2]], 1.f));
         // a,b,c,e,d are al world coordinate
-        if (intersectTriangle(a, b, c, e, d)) {
-            return true;
+        auto p = intersectTriangle(a, b, c, e, d, near, far);
+        if (p.first) {
+            intersect = true;
+            min_t = std::min(min_t, p.second);
         }
     }
-    return false;
+    return {intersect, min_t};
 }
 
 glm::mat4 Object::getModelMatrix() const {
@@ -243,18 +222,17 @@ glm::mat3 Object::getNormalMatrix() const {
     // return glm::mat3(1.0);
 }
 
-bool Object::intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
-                               const glm::vec3& e, const glm::vec3& d) {
+std::pair<bool, float> Object::intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
+                               const glm::vec3& e, const glm::vec3& d, float near, float far) {
     // Textbook 4.4.2
-    float near = 0.f, far = 2.f; // TODO: pass in
     float da = glm::determinant(glm::mat3(a - b, a - c, d));
     float t = glm::determinant(glm::mat3(a - b, a - c, a - e)) / da; //t
-    if (t < near || t > far) { return false; }
+    if (t < near || t > far) { return {false, 0.f}; }
     float gamma = glm::determinant(glm::mat3(a - b, a - e, d)) / da; // gamma
-    if (gamma < 0 || gamma > 1) { return false; }
+    if (gamma < 0 || gamma > 1) { return {false, 0.f}; }
     float beta = glm::determinant(glm::mat3(a - e, a - c, d)) / da; //beta
-    if (beta < 0 || beta > 1 - gamma) { return false; }
-    return true;
+    if (beta < 0 || beta > 1 - gamma) { return {false, 0.f}; }
+    return {true, t};
 }
 
 
@@ -304,6 +282,21 @@ void Geometry::addCube() {
 void Geometry::deleteObject(int index) {
     ASSERT(index < m_objs.size(), "deleteObject(index): index out of range");
     m_objs.erase(m_objs.begin() + index);
+}
+
+int Geometry::intersectRay(const glm::vec3& e, const glm::vec3& d, float near, float far) const {
+    float min_t = std::numeric_limits<float>::max();
+    int res = -1;
+    for (int i = 0; i < m_objs.size(); ++i) {
+        auto p = m_objs[i].intersectRay(e, d, near, far);
+        if (p.first) {
+            if (p.second < min_t) {
+                min_t = p.second;
+                res = i;
+            }
+        }
+    }
+    return res;
 }
 
 size_t Geometry::size() const { return m_objs.size(); }
