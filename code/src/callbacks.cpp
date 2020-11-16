@@ -10,24 +10,26 @@
 
 namespace CSGY6533 {
 
-BaseState::BaseState(Geometry& geometry)
-    : m_geometry {geometry} {}
+BaseState::BaseState(Geometry& geometry, ViewControl& view_control)
+    : m_geometry {geometry}
+    , m_view_control {view_control} {}
 
 BaseState::~BaseState() {}
 
 void BaseState::windowSizeCb(int width, int height) {
     glViewport(0, 0, width, height);
+    m_view_control.setScreenSize(height, width);
 }
 
 void BaseState::mouseClickCb(int button, int action,
-                             double xworld, double yworld) {}
+                             double screen_x, double screen_y) {}
 
 void BaseState::keyboardCb(int key, int action) {}
 
-void BaseState::mouseMoveCb(double xworld, double yworld) {}
+void BaseState::mouseMoveCb(double screen_x, double screen_y) {}
 
-InsertState::InsertState(Geometry& geometry)
-    : BaseState(geometry) {
+InsertState::InsertState(Geometry& geometry, ViewControl& view_control)
+    : BaseState(geometry, view_control) {
 }
 
 InsertState::~InsertState() {
@@ -53,22 +55,19 @@ void InsertState::keyboardCb(int key, int action) {
 }
 
 MoveState::MoveState(Geometry& geometry, ViewControl& view_control)
-        : BaseState(geometry)
-        , m_view_control {view_control} {}
+        : BaseState(geometry, view_control) {}
 
 MoveState::~MoveState() {
     m_selected = -1;
 }
 
 void MoveState::mouseClickCb(int button, int action,
-                             double xworld, double yworld)  {
+                             double screen_x, double screen_y)  {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if(GLFW_PRESS == action) {
-            glm::vec3 e = {xworld, yworld, 1.f};
-            glm::vec3 d = {0.f, 0.f, -1.f}; //TODO: camera
-            auto p = m_view_control.getClickRay(xworld, yworld);
-            e = p.first;
-            d = p.second;
+            auto p = m_view_control.getClickRay(screen_x, screen_y);
+            glm::vec3 e = p.first;
+            glm::vec3 d = p.second;
             m_selected = m_geometry.intersectRay(e, d,
                 m_view_control.near(), m_view_control.far());
             if (m_selected != -1) {
@@ -79,7 +78,7 @@ void MoveState::mouseClickCb(int button, int action,
 
 }
 
-void MoveState::mouseMoveCb(double xworld, double yworld) {
+void MoveState::mouseMoveCb(double screen_x, double screen_y) {
     // if (lbutton_down) {
     // }
 }
@@ -166,8 +165,7 @@ void MoveState::keyboardCb(int key, int action) {
 // }
 
 CameraState::CameraState(Geometry& geometry, ViewControl& view_control)
-    : BaseState(geometry)
-    , m_view_control {view_control} {}
+    : BaseState(geometry, view_control) {}
 
 CameraState::~CameraState() {}
 
@@ -197,7 +195,7 @@ void CameraState::keyboardCb(int key, int action) {
 }
 
 void CameraState::mouseClickCb(int button, int action,
-                              double xworld, double yworld) {
+                              double screen_x, double screen_y) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if(GLFW_PRESS == action) {
         }
@@ -206,18 +204,17 @@ void CameraState::mouseClickCb(int button, int action,
 
 DeleteState::DeleteState(Geometry& geometry,
                          ViewControl& view_control)
-    : BaseState(geometry)
-    , m_view_control {view_control} {
-}
+    : BaseState(geometry, view_control) {}
 
 DeleteState::~DeleteState() {}
 
 void DeleteState::mouseClickCb(int button, int action,
-                               double xworld, double yworld) {
+                               double screen_x, double screen_y) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if(GLFW_PRESS == action) {
-            glm::vec3 e = {xworld, yworld, 1.f};
-            glm::vec3 d = {0.f, 0.f, -1.f}; // TODO: camera
+            auto p = m_view_control.getClickRay(screen_x, screen_y);
+            glm::vec3 e = p.first;
+            glm::vec3 d = p.second;
             int selected = m_geometry.intersectRay(e, d,
                 m_view_control.near(), m_view_control.far());
             m_geometry.deleteObject(selected);
@@ -232,17 +229,17 @@ Callbacks::Callbacks(Geometry& geometry, ViewControl& view_control)
     : m_geometry {geometry}
     , m_view_control {view_control}
     , m_mode {DEFAULT} {
-    m_cur = BaseState::ptr(new BaseState(m_geometry));
+    m_cur = BaseState::ptr(new BaseState(m_geometry, m_view_control));
 }
 
 void Callbacks::toDefaultMode() {
     if (m_mode == DEFAULT) return;
-    m_cur.reset(new BaseState(m_geometry));
+    m_cur.reset(new BaseState(m_geometry, m_view_control));
 }
 
 void Callbacks::toModeInsert() {
     if (m_mode == INSERT) return;
-    m_cur.reset(new InsertState(m_geometry));
+    m_cur.reset(new InsertState(m_geometry, m_view_control));
 }
 
 void Callbacks::toModeMove() {
@@ -260,8 +257,8 @@ void Callbacks::toModeDelete() {
     m_cur.reset(new DeleteState(m_geometry, m_view_control));
 }
 
-void Callbacks::mouseClickCb(int button, int action, double xworld, double yworld) {
-    m_cur->mouseClickCb(button, action, xworld, yworld);
+void Callbacks::mouseClickCb(int button, int action, double screen_x, double screen_y) {
+    m_cur->mouseClickCb(button, action, screen_x, screen_y);
 }
 
 void Callbacks::keyboardCb(int key, int action) {
@@ -297,8 +294,8 @@ void Callbacks::windowSizeCb(int width, int height) {
     m_cur->windowSizeCb(width, height);
 }
 
-void Callbacks::mouseMoveCb(double xworld, double yworld) {
-    m_cur->mouseMoveCb(xworld, yworld);
+void Callbacks::mouseMoveCb(double screen_x, double screen_y) {
+    m_cur->mouseMoveCb(screen_x, screen_y);
 }
 
 std::vector<glm::vec3> MoveState::provided_color = {

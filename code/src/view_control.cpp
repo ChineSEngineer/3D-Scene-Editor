@@ -54,7 +54,7 @@ glm::vec2 ViewControl::worldCoordinateFromView(float x, float y) {
 }
 
 std::pair<glm::vec3, glm::vec3> ViewControl::getClickRay(float x, float y) {
-    glm::mat4 convert = glm::inverse(getProjMatrix() * getViewMatrix());
+    glm::mat4 convert = glm::inverse(getAspectRatioMatrix() * getProjMatrix() * getViewMatrix());
 
     glm::vec4 start = convert * glm::vec4(x, y, -1.f, 1.f);
     glm::vec4 end   = convert * glm::vec4(x, y, 1.f, 1.f);

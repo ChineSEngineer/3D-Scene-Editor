@@ -32,9 +32,8 @@ static Geometry geometry;
 static ViewControl view_control;
 static Callbacks callbacks(geometry, view_control);
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0, 0, width, height);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    callbacks.windowSizeCb(width, height);
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -48,11 +47,11 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     glfwGetWindowSize(window, &width, &height);
 
     // Convert screen position to world coordinates
-    double xworld = ((xpos/double(width))*2)-1;
-    double yworld = (((height-1-ypos)/double(height))*2)-1; // NOTE: y axis is flipped in glfw
+    double screen_x = ((xpos/double(width))*2)-1;
+    double screen_y = (((height-1-ypos)/double(height))*2)-1; // NOTE: y axis is flipped in glfw
 
     // Update the position of the first vertex if the left button is pressed
-    callbacks.mouseClickCb(button, action, xworld, yworld);
+    callbacks.mouseClickCb(button, action, screen_x, screen_y);
         //V[0] = glm::vec3(xworld, yworld, 0);
 
     // Upload the change to the GPU
@@ -160,6 +159,10 @@ int main(void)
 
     // Update viewport
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    framebuffer_size_callback(window, width, height);
 
     glEnable(GL_DEPTH_TEST);
     // glDepthFunc(GL_GREATER);

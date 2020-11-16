@@ -47,6 +47,8 @@ void Object::drawWireframe(std::vector<Program>& programs, glm::vec3& light, Vie
     glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
     GLint uniMVP = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVP, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
+    GLint uniAR = program.uniform("AspectRatioMatrix");
+    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
 
     program.bindVertexAttribArray("position",m_vbo);
 
@@ -66,6 +68,8 @@ void Object::drawFlatShading(std::vector<Program>& programs, glm::vec3& light, V
     glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
     GLint uniMVPMatrix = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
+    GLint uniAR = program.uniform("AspectRatioMatrix");
+    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
     GLint uniModelMatrix = program.uniform("ModelMatrix");
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
     program.bindVertexAttribArray("position",m_vbo);
@@ -85,6 +89,8 @@ void Object::drawPhongShading(std::vector<Program>& programs, glm::vec3& light, 
     glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
     GLint uniMVPMatrix = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
+    GLint uniAR = program.uniform("AspectRatioMatrix");
+    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
     GLint uniModelMatrix = program.uniform("ModelMatrix");
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
     GLint uniNormalMatrix = program.uniform("NormalMatrix");
