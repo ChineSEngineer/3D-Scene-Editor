@@ -125,10 +125,19 @@ void MoveState::keyboardCb(int key, int action) {
                 m_geometry[m_selected].rotate(0.f, 0.f, -20.f);
                 break;
             case GLFW_KEY_N:
-                m_geometry[m_selected].scale(.25f);
+                m_geometry[m_selected].scale(.1f);
                 break;
             case GLFW_KEY_M:
-                m_geometry[m_selected].scale(-.25f);
+                m_geometry[m_selected].scale(-.1f);
+                break;
+            case GLFW_KEY_Z:
+                m_geometry[m_selected].setDisplayMode(Object::MODE1);
+                break;
+            case GLFW_KEY_X:
+                m_geometry[m_selected].setDisplayMode(Object::MODE2);
+                break;
+            case GLFW_KEY_C:
+                m_geometry[m_selected].setDisplayMode(Object::MODE3);
                 break;
             #define SET_OBJECT_COLOR(xx) \
                 case GLFW_KEY_ ##xx :   \

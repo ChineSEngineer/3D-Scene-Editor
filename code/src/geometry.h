@@ -41,7 +41,7 @@ class Object {
     bool intersectRay(const glm::vec3& e, const glm::vec3& d) const;
 
     glm::mat4 getModelMatrix() const;
-    glm::mat4 getNormalMatrix() const;
+    glm::mat3 getNormalMatrix() const;
 
  private:
     static bool intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
@@ -52,6 +52,7 @@ class Object {
 
  private:
     std::vector<glm::vec3> m_vertices;
+    std::vector<glm::vec3> m_vertex_normals;
     std::vector<int> m_indices;
     std::vector<float> m_model;  // 0,1,2 - translate, 3,4,5 - rotate, 6 - sacle
     glm::vec3 m_color;  // 0,1,2 - rgb
@@ -59,6 +60,7 @@ class Object {
     // VertexBufferObject m_normal;
     VertexBufferObject m_vbo;
     ElementBufferObject m_ebo;
+    VertexBufferObject m_nbo;   // vbo for vertex normal
 
 };
 
