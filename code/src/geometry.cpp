@@ -40,7 +40,7 @@ void Object::drawWireframe(std::vector<Program>& programs, glm::vec3& light, Vie
     program.bind();
     glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
-    glm::mat4 MVPMatrix = view_control.getOrthoProjMatrix() *
+    glm::mat4 MVPMatrix = view_control.getProjMatrix() *
                           view_control.getViewMatrix() *
                           getModelMatrix();
     GLint uniColor = program.uniform("color");
@@ -59,7 +59,7 @@ void Object::drawFlatShading(std::vector<Program>& programs, glm::vec3& light, V
     Program program = programs[FLAT];
     program.bind();
 
-    glm::mat4 MVPMatrix = view_control.getOrthoProjMatrix() *
+    glm::mat4 MVPMatrix = view_control.getProjMatrix() *
                           view_control.getViewMatrix() *
                           getModelMatrix();
     GLint uniColor = program.uniform("color");
@@ -84,7 +84,7 @@ void Object::drawPhongShading(std::vector<Program>& programs, glm::vec3& light, 
     Program program = programs[PHONG];
     program.bind();
 
-    glm::mat4 MVPMatrix = view_control.getOrthoProjMatrix() *
+    glm::mat4 MVPMatrix = view_control.getProjMatrix() *
                           view_control.getViewMatrix() *
                           getModelMatrix();
     GLint uniColor = program.uniform("color");

@@ -22,7 +22,6 @@ class Object {
         MODE1 = 0,
         MODE2 = 1,
         MODE3 = 2,
-        N_MODE = 3
     };
     Object();
     void free();

@@ -1,5 +1,7 @@
 #include "view_control.h"
 
+#include "macro.h"
+
 #include <glm/gtx/string_cast.hpp> 
 
 #include <iostream>
@@ -10,9 +12,11 @@ namespace CSGY6533 {
 ViewControl::ViewControl() 
     : m_l {-1.f}, m_r {1.f}
     , m_b {-1.f}, m_t {1.f}
-    , m_n {0.1f}, m_f {10.f}
-    // , m_eyePos {0.f, 0.f, 3.f}
-    , m_viewUp {0.f, 1.f, 0.f} {
+    , m_n {0.1f}, m_f {100.f}
+    , m_fov {40.f}
+    , m_viewUp {0.f, 1.f, 0.f}
+    , m_trackball {}
+    , m_project_mode {ORTHOGRAPHIC} {
         m_eyePos = m_trackball.getEyePos();
     }
 
@@ -24,6 +28,20 @@ glm::mat4 ViewControl::getViewMatrix() {
 
 glm::mat4 ViewControl::getOrthoProjMatrix() {
     return glm::ortho(m_l, m_r, m_l, m_r, m_n ,m_f);
+}
+
+glm::mat4 ViewControl::getProjMatrix() {
+    if (m_project_mode == PERSPECTIVE) {
+        return getPerspProjMatrix();
+    } else if (m_project_mode == ORTHOGRAPHIC) {
+        return getOrthoProjMatrix();
+    } else {
+        ASSERT(false, "Invalid projection mode");
+    }
+}
+
+glm::mat4 ViewControl::getPerspProjMatrix() {
+    return glm::perspective(glm::radians(m_fov), 1.f, m_n, m_f);
 }
 
 glm::mat4 ViewControl::getAspectRatioMatrix() {
@@ -115,7 +133,7 @@ glm::vec3 ViewControl::Trackball::getEyePos() const {
     float x = m_radius * sin(theta) * sin(phi);
     float y = m_radius * cos(theta);
     float z = m_radius * sin(theta) * cos(phi);
-    std::cout << "r=" << m_radius << ", theta=" << m_theta << ", phi=" << m_phi << std::endl;;
+    // std::cout << "r=" << m_radius << ", theta=" << m_theta << ", phi=" << m_phi << std::endl;;
     std::cout << glm::to_string(glm::vec3(x, y ,z)) << std::endl;
     return {x, y, z};
 }

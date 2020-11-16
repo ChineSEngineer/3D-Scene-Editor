@@ -277,6 +277,12 @@ void Callbacks::keyboardCb(int key, int action) {
             case  GLFW_KEY_U:
                 toModeCamera();
                 break;
+            case  GLFW_KEY_V:
+                m_view_control.setPerspective();
+                break;
+            case  GLFW_KEY_B:
+                m_view_control.setOrthographic();
+                break;
             default:
                 break;
         }

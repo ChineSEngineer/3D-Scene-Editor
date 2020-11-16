@@ -10,8 +10,11 @@ class ViewControl {
  public:
     ViewControl();
     glm::mat4 getViewMatrix();
-    glm::mat4 getOrthoProjMatrix();
+    glm::mat4 getProjMatrix();
     glm::mat4 getAspectRatioMatrix();
+
+    void setPerspective() { m_project_mode = PERSPECTIVE; }
+    void setOrthographic() { m_project_mode = ORTHOGRAPHIC; }
 
     glm::vec2 worldCoordinateFromView(float x, float y);
 
@@ -25,6 +28,9 @@ class ViewControl {
     void setScreenSize(int height, int width);
     glm::vec3 getEyePosition() { return m_eyePos; }
 
+ private:
+    glm::mat4 getOrthoProjMatrix();
+    glm::mat4 getPerspProjMatrix();
 
  private:
     class Trackball {
@@ -45,19 +51,30 @@ class ViewControl {
         float m_phi = 0.f;
         float m_radius = 3.f;
     };
+
+    enum ProjMode {
+        ORTHOGRAPHIC,
+        PERSPECTIVE
+    };
+
+ private:
     float m_l;
     float m_r;
     float m_b;
     float m_t;
     float m_n;
     float m_f;
+    float m_fov;
 
     float m_height;
     float m_width;
 
     glm::vec3 m_eyePos;
     glm::vec3 m_viewUp;
+
     Trackball m_trackball;
+
+    ProjMode m_project_mode;
 };  
        
 }
