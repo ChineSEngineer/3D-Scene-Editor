@@ -217,8 +217,8 @@ void DeleteState::mouseClickCb(int button, int action,
             glm::vec3 d = p.second;
             int selected = m_geometry.intersectRay(e, d,
                 m_view_control.near(), m_view_control.far());
-            m_geometry.deleteObject(selected);
             if (selected != -1) {
+                m_geometry.deleteObject(selected);
                 std::cout << "Delete: " << selected << std::endl;
             }
         }
