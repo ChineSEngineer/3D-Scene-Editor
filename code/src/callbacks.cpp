@@ -190,6 +190,12 @@ void CameraState::keyboardCb(int key, int action) {
             case GLFW_KEY_E:
                 m_view_control.backward(0.1);
                 break;
+            case GLFW_KEY_Z:
+                m_view_control.setTrackball();
+                break;
+            case GLFW_KEY_X:
+                m_view_control.setNormal();
+                break;
         }
     }
 }

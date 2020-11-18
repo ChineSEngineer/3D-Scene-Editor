@@ -16,8 +16,9 @@ ViewControl::ViewControl()
     , m_fov {40.f}
     , m_viewUp {0.f, 1.f, 0.f}
     , m_trackball {}
-    , m_project_mode {ORTHOGRAPHIC} {
-        m_eyePos = m_trackball.getEyePos();
+    , m_project_mode {ORTHOGRAPHIC}
+    , m_camera_move_mode {NORMAL} {
+        m_eyePos = m_trackball.toEyePos();
     }
 
 glm::mat4 ViewControl::getViewMatrix() {
@@ -66,39 +67,63 @@ std::pair<glm::vec3, glm::vec3> ViewControl::getClickRay(float x, float y) {
 
 
 void ViewControl::left(float length) {
-    m_trackball.left(length);
-    m_eyePos = m_trackball.getEyePos();
-    // right(-length);
+    if (m_camera_move_mode == TRACKBALL) {
+        m_trackball.left(length);
+        m_eyePos = m_trackball.toEyePos();
+    } else {
+        m_eyePos[0] -= length;
+        m_trackball.fromEyePos(m_eyePos);
+    }
 }
 
 void ViewControl::right(float length) {
-    m_trackball.right(length);
-    m_eyePos = m_trackball.getEyePos();
-    // m_eyePos[0] += length;
+    if (m_camera_move_mode == TRACKBALL) {
+        m_trackball.right(length);
+        m_eyePos = m_trackball.toEyePos();
+    } else {
+        m_eyePos[0] += length;
+        m_trackball.fromEyePos(m_eyePos);
+    }
 }
 
 void ViewControl::up(float length) {
-    m_trackball.up(length);
-    m_eyePos = m_trackball.getEyePos();
-    // m_eyePos[1] += length;
+    if (m_camera_move_mode == TRACKBALL) {
+        m_trackball.up(length);
+        m_eyePos = m_trackball.toEyePos();
+    } else {
+        m_eyePos[1] += length;
+        m_trackball.fromEyePos(m_eyePos);
+    }
 }
 
 void ViewControl::down(float length) {
-    m_trackball.down(length);
-    m_eyePos = m_trackball.getEyePos();
-    // up(-length);
+    if (m_camera_move_mode == TRACKBALL) {
+        m_trackball.down(length);
+        m_eyePos = m_trackball.toEyePos();
+    } else {
+        m_eyePos[1] -= length;
+        m_trackball.fromEyePos(m_eyePos);
+    }
 }
 
 void ViewControl::forward(float length) {
-    m_trackball.forward(length);
-    m_eyePos = m_trackball.getEyePos();
-    // m_eyePos[2] += length;
+    if (m_camera_move_mode == TRACKBALL) {
+        m_trackball.forward(length);
+        m_eyePos = m_trackball.toEyePos();
+    } else {
+        m_eyePos[2] += length;
+        m_trackball.fromEyePos(m_eyePos);
+    }
 }
 
 void ViewControl::backward(float length) {
-    m_trackball.backward(length);
-    m_eyePos = m_trackball.getEyePos();
-    // forward(-length);
+    if (m_camera_move_mode == TRACKBALL) {
+        m_trackball.backward(length);
+        m_eyePos = m_trackball.toEyePos();
+    } else {
+        m_eyePos[2] -= length;
+        m_trackball.fromEyePos(m_eyePos);
+    }
 }
 
 void ViewControl::setScreenSize(int height, int width) {
@@ -116,16 +141,16 @@ void ViewControl::Trackball::right(float length) {
 }
 
 void ViewControl::Trackball::up(float length) {
-    float tmp = m_theta - lengthToDegree(length);
+    float tmp = m_beta - lengthToDegree(length);
     if (tmp > 0) {
-        m_theta = tmp;
+        m_beta = tmp;
     }
 }
 
 void ViewControl::Trackball::down(float length) {
-    float tmp = m_theta + lengthToDegree(length);
+    float tmp = m_beta + lengthToDegree(length);
     if (tmp < 180) {
-        m_theta = tmp;
+        m_beta = tmp;
     }
 }
 
@@ -137,17 +162,36 @@ void ViewControl::Trackball::forward(float length) {
 
 void ViewControl::Trackball::backward(float length) { m_radius += length; }
 
-glm::vec3 ViewControl::Trackball::getEyePos() const {
+glm::vec3 ViewControl::Trackball::toEyePos() const {
     float phi = d2r(m_phi);
-    float theta = d2r(m_theta);
-    float x = m_radius * sin(theta) * sin(phi);
-    float y = m_radius * cos(theta);
-    float z = m_radius * sin(theta) * cos(phi);
-    // std::cout << "r=" << m_radius << ", theta=" << m_theta << ", phi=" << m_phi << std::endl;;
+    float beta = d2r(m_beta);
+    float x = m_radius * std::sin(beta) * std::sin(phi);
+    float y = m_radius * std::cos(beta);
+    float z = m_radius * std::sin(beta) * std::cos(phi);
+    // std::cout << "r=" << m_radius << ", beta=" << m_beta << ", phi=" << m_phi << std::endl;;
     return {x, y, z};
 }
 
+void ViewControl::Trackball::fromEyePos(const glm::vec3& eyePos) {
+    m_radius = glm::length(eyePos);
+    float beta = std::acos(eyePos[1] / m_radius);
+
+    float sin_beta = std::sin(beta);
+    float tmp_phi = std::asin(eyePos[0] / (m_radius * sin(beta)));
+    float cos_phi = eyePos[2] / (m_radius * sin_beta);
+    if (cos_phi < 0) {
+        tmp_phi = ((float) M_PI) - tmp_phi;
+    } else if (tmp_phi < 0) {
+        tmp_phi += (2 * ((float) M_PI));
+    }
+    float phi = tmp_phi;
+
+    m_phi = r2d(phi);
+    m_beta = r2d(beta);
+}
+
 float ViewControl::Trackball::d2r(float d) { return (d / 180.f) * ((float) M_PI); }
+float ViewControl::Trackball::r2d(float r) { return (r * 180.f) / ((float) M_PI); }
 
 float ViewControl::Trackball::lengthToDegree(float length) {
     return std::fmod(360 * (length / (2 * ((float) M_PI) * m_radius)), 360);

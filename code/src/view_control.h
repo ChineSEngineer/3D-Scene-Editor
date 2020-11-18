@@ -26,6 +26,9 @@ class ViewControl {
     glm::vec2 worldCoordinateFromView(float x, float y); // TODO: Delete
     std::pair<glm::vec3, glm::vec3> getClickRay(float x, float y);
 
+
+    void setTrackball() { m_camera_move_mode = TRACKBALL; }
+    void setNormal() { m_camera_move_mode = NORMAL; }
     void left(float lengh);
     void right(float length);
     void up(float lengh);
@@ -49,13 +52,15 @@ class ViewControl {
         void down(float length);
         void forward(float length);
         void backward(float length);
-        glm::vec3 getEyePos() const;
+        glm::vec3 toEyePos() const;
+        void fromEyePos(const glm::vec3& eyePos);
         
      private:
         static float d2r(float d);
+        static float r2d(float d);
         float lengthToDegree(float length);
      private:
-        float m_theta = 90.f;
+        float m_beta = 90.f;
         float m_phi = 0.f;
         float m_radius = 3.f;
     };
@@ -66,6 +71,10 @@ class ViewControl {
     };
 
  private:
+    enum CameraMoveMode {
+        NORMAL = 1,
+        TRACKBALL = 2
+    };
     float m_l;
     float m_r;
     float m_b;
@@ -83,6 +92,7 @@ class ViewControl {
     Trackball m_trackball;
 
     ProjMode m_project_mode;
+    CameraMoveMode m_camera_move_mode;
 };  
        
 }
