@@ -71,8 +71,11 @@ void MoveState::mouseClickCb(int button, int action,
             m_selected = m_geometry.intersectRay(e, d,
                 m_view_control.near(), m_view_control.far());
             if (m_selected != -1) {
+                m_geometry[m_selected].inverseColor();
                 std::cout << "Select: " << m_selected << std::endl;
             }
+        } else if(GLFW_RELEASE == action) {
+            m_geometry[m_selected].inverseColor();
         }
     }
 

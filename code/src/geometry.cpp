@@ -160,6 +160,10 @@ void Object::color(glm::vec3& color) {
     m_color = {color[0], color[1], color[2]};
 }
 
+void Object::inverseColor() {
+    m_color = glm::vec3(1.f) - m_color;
+}
+
 void Object::unitize() {
     float min_x, min_y, min_z, max_x, max_y, max_z;
     min_x = min_y = min_z = std::numeric_limits<float>::max();

@@ -36,6 +36,7 @@ class Object {
     void rotate(float x, float y, float z);
     void scale(float change);
     void color(glm::vec3& color);
+    void inverseColor();
 
     std::pair<bool, float> intersectRay(const glm::vec3& e, const glm::vec3& d, float near, float far) const;
 
