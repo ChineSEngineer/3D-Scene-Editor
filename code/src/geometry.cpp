@@ -43,7 +43,7 @@ void Object::drawWireframe(std::vector<Program>& programs, glm::vec3& light, Vie
     glm::mat4 MVPMatrix = view_control.getProjMatrix() *
                           view_control.getViewMatrix() *
                           getModelMatrix();
-    GLint uniColor = program.uniform("color");
+    GLint uniColor = program.uniform("Color");
     glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
     GLint uniMVP = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVP, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
