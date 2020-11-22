@@ -172,6 +172,7 @@ class ProgramFactory {
     static Program createWireframeShader(const std::string &fragment_data_name);
     static Program createFlatShader(const std::string &fragment_data_name);
     static Program createPhongShader(const std::string &fragment_data_name);
+    static Program createLineShader(const std::string &fragment_data_name);
  private:
     static std::string readShader(const std::string& shader);
 };

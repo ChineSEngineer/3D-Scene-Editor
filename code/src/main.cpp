@@ -5,6 +5,7 @@
 #include "macro.h"
 #include "callbacks.h"
 #include "view_control.h"
+#include "blobby_man.h"
 
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
@@ -30,10 +31,17 @@ using namespace CSGY6533;
 
 static Geometry geometry;
 static ViewControl view_control;
+static BlobbyMan blobby_man;
 static Callbacks callbacks(geometry, view_control);
 
+static bool blobby_mode = false;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    callbacks.windowSizeCb(width, height);
+    if (blobby_mode) {
+        blobby_man.resize_window(width, height);
+    } else {
+        callbacks.windowSizeCb(width, height);
+    }
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -64,7 +72,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
     // Upload the change to the GPU
     // VBO2.update(V);
-    callbacks.keyboardCb(key, action);
+    if (GLFW_PRESS == action && key == GLFW_KEY_SPACE) {
+        blobby_mode = !blobby_mode;
+    }
+    if (blobby_mode) {
+        blobby_man.keyboardCb(key, action);
+    } else {
+        callbacks.keyboardCb(key, action);
+    }
 }
 
 int main(void)
@@ -130,6 +145,8 @@ int main(void)
     geometry.init();
     geometry.bind();
 
+
+    World world;
     // Initialize the OpenGL Program
     // A program controls the OpenGL pipeline and it must contains
     // at least a vertex shader and a fragment shader to be valid
@@ -137,6 +154,7 @@ int main(void)
     programs[WIREFRAME] = ProgramFactory::createWireframeShader("outColor");
     programs[FLAT] = ProgramFactory::createFlatShader("outColor");
     programs[PHONG] = ProgramFactory::createPhongShader("outColor");
+    programs[LINE] = ProgramFactory::createLineShader("outColor");
 
     // Compile the two shaders and upload the binary to the GPU
     // Note that we have to explicitly specify that the output "slot" called outColor
@@ -163,6 +181,8 @@ int main(void)
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     framebuffer_size_callback(window, width, height);
+    callbacks.windowSizeCb(width, height);
+    blobby_man.resize_window(width, height);
 
     glEnable(GL_DEPTH_TEST);
     // glDepthFunc(GL_GREATER);
@@ -173,8 +193,6 @@ int main(void)
         geometry.bind();
 
         // Set the uniform value depending on the time difference
-        auto t_now = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
         // glUniform3f(program.uniform("triangleColor"), (float)(sin(time * 4.0f) + 1.0f) / 2.0f, 0.0f, 0.0f);
 
 
@@ -190,8 +208,12 @@ int main(void)
 
         // Draw a triangle
         // glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        geometry.draw(programs, view_control);
+        if (blobby_mode) {
+            blobby_man.update();
+            world.draw(programs[LINE], Matrix());
+        } else {
+            geometry.draw(programs, view_control);
+        }
 
         // Swap front and back buffers
         glfwSwapBuffers(window);

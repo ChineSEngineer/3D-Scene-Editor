@@ -14,8 +14,10 @@ enum ShaderMode {
     WIREFRAME = 0,
     FLAT = 1,
     PHONG = 2,
-    N_SHADER = 3
+    LINE = 3,
+    N_SHADER
 };
+
 
 class Object {
  public:

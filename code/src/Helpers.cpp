@@ -204,6 +204,15 @@ Program ProgramFactory::createPhongShader(const std::string &fragment_data_name)
     return program;
 }
 
+Program ProgramFactory::createLineShader(const std::string &fragment_data_name) {
+    Program program;
+    std::string vertex_shader = readShader("../shader/line.vert");
+    std::string fragment_shader = readShader("../shader/line.frag");
+    std::string geometry_shader;
+    program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
+    return program;
+}
+
 std::string ProgramFactory::readShader(const std::string& path) {
     std::ifstream infile(path, std::ios::binary);
     ASSERT(infile.is_open(), std::string("Shader file not exists: ") + path);
