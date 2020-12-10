@@ -5,12 +5,18 @@ in vec3 fragPosition;
 
 out vec4 outColor;
 
+//shadow
+uniform samplerCube depthMap;
+uniform float far_plane;
+
+//lighting
+uniform int lighting_strategy;
 uniform vec3 color;
 uniform vec3 eyePosition;
 uniform vec3 lightPosition; 
+uniform samplerCube skybox;
 
-uniform samplerCube depthMap;
-uniform float far_plane;
+
 
 float ShadowCalculation(vec3 fragPos) {
     vec3 fragToLight = fragPos - lightPosition;
@@ -24,7 +30,7 @@ float ShadowCalculation(vec3 fragPos) {
     return shadow;
 }
 
-void main() {
+void phongLighting() {
     vec3 lightColor = vec3(1.0, 1.0, 1.0);
     // vec3 eyePosition = vec3(0.0, 0.0, 10); 
     // vec3 lightPosition = vec3(1.0, 1.0, 1.0);
@@ -49,3 +55,40 @@ void main() {
     vec3 result = (ambient + (1 - shadow) * (diffuse + specular)) * color;
     outColor = vec4(result, 1.0);
 };
+
+void mirrorLighting() {
+    // ambient
+    vec3 ambient = 1.0 * vec3(1.0, 1.0, 1.0);
+
+    vec3 I = normalize(fragPosition - eyePosition);
+    vec3 R = reflect(I, normalize(face_normal));
+    vec3 texture_color = texture(skybox, R).rgb;
+
+    float shadow = ShadowCalculation(fragPosition);
+    vec3 result = (ambient + (1 - shadow)) * texture_color;
+    outColor = vec4(result, 1.0);
+}
+
+void refractLighting() {
+    // ambient
+    vec3 ambient = 0.8 * vec3(1.0, 1.0, 1.0);
+
+    float ratio = 1.00 / 1.52;
+    vec3 I = normalize(fragPosition - eyePosition);
+    vec3 R = refract(I, normalize(face_normal), ratio);
+    vec3 texture_color = texture(skybox, R).rgb;
+
+    float shadow = ShadowCalculation(fragPosition);
+    vec3 result = (ambient + (1 - shadow)) * texture_color;
+    outColor = vec4(result, 1.0);
+}
+
+void main() {
+    if (lighting_strategy == 1) {
+        phongLighting();
+    } else if (lighting_strategy == 2) {
+        mirrorLighting();
+    } else if (lighting_strategy == 3) {
+        refractLighting();
+    }
+}

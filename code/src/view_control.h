@@ -66,7 +66,7 @@ class ViewControl {
      private:
         float m_beta = 90.f;
         float m_phi = 0.f;
-        float m_radius = 8.f;
+        float m_radius = 5.f;
     };
 
     enum ProjMode {

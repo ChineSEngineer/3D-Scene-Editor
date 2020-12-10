@@ -142,17 +142,31 @@ int main(void)
     // Initialize the OpenGL Program
     // A program controls the OpenGL pipeline and it must contains
     // at least a vertex shader and a fragment shader to be valid
+    GLuint uniDepthMap, uniSkybox;
     std::vector<Program> programs(N_SHADER);
     programs[WIREFRAME] = ProgramFactory::createWireframeShader("outColor");
     programs[FLAT] = ProgramFactory::createFlatShader("outColor");
+    programs[FLAT].bind();
+    uniDepthMap = programs[FLAT].uniform("depthMap");
+    glUniform1i(uniDepthMap, 0);
+    uniSkybox = programs[FLAT].uniform("skybox");
+    glUniform1i(uniSkybox, 1);
+
     programs[PHONG] = ProgramFactory::createPhongShader("outColor");
+    programs[PHONG].bind();
+    uniDepthMap = programs[PHONG].uniform("depthMap");
+    glUniform1i(uniDepthMap, 0);
+    uniSkybox = programs[PHONG].uniform("skybox");
+    glUniform1i(uniSkybox, 1);
+
     programs[SHADOW] = ProgramFactory::createShadowShader("");
     programs[SHADOW].bind();
-    GLint uniDepthMap = programs[SHADOW].uniform("depthMap");
+    uniDepthMap = programs[SHADOW].uniform("depthMap");
     glUniform1i(uniDepthMap, 0);
+
     programs[SKYBOX] = ProgramFactory::createSkyboxShader("outColor");
     programs[SKYBOX].bind();
-    GLint uniSkybox = programs[SHADOW].uniform("skybox");
+    uniSkybox = programs[SHADOW].uniform("skybox");
     glUniform1i(uniSkybox, 0);
 
 
@@ -207,7 +221,7 @@ int main(void)
 
 
         geometry.bind();
-        geometry.draw(programs, view_control);
+        geometry.draw(programs, view_control, skybox.getTexture());
 
         glDepthFunc(GL_LEQUAL);
         //glDepthMask(GL_FALSE);

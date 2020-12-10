@@ -128,10 +128,10 @@ void MoveState::keyboardCb(int key, int action) {
             case  GLFW_KEY_L:
                 m_geometry[m_selected].rotate(0.f, 0.f, -20.f);
                 break;
-            case GLFW_KEY_N:
+            case GLFW_KEY_COMMA:
                 m_geometry[m_selected].scale(.1f);
                 break;
-            case GLFW_KEY_M:
+            case GLFW_KEY_PERIOD:
                 m_geometry[m_selected].scale(-.1f);
                 break;
             case GLFW_KEY_Z:
@@ -142,6 +142,18 @@ void MoveState::keyboardCb(int key, int action) {
                 break;
             case GLFW_KEY_C:
                 m_geometry[m_selected].setDisplayMode(Object::MODE3);
+                break;
+            case GLFW_KEY_V:
+                m_geometry[m_selected].setDisplayMode(Object::MODE4);
+                break;
+            case GLFW_KEY_B:
+                m_geometry[m_selected].setDisplayMode(Object::MODE5);
+                break;
+            case GLFW_KEY_N:
+                m_geometry[m_selected].setDisplayMode(Object::MODE6);
+                break;
+            case GLFW_KEY_M:
+                m_geometry[m_selected].setDisplayMode(Object::MODE7);
                 break;
             #define SET_OBJECT_COLOR(xx) \
                 case GLFW_KEY_ ##xx :   \
@@ -198,6 +210,12 @@ void CameraState::keyboardCb(int key, int action) {
                 break;
             case GLFW_KEY_X:
                 m_view_control.setNormal();
+                break;
+            case  GLFW_KEY_N:
+                m_view_control.setPerspective();
+                break;
+            case  GLFW_KEY_M:
+                m_view_control.setOrthographic();
                 break;
         }
     }
@@ -314,12 +332,6 @@ void Callbacks::keyboardCb(int key, int action) {
                 break;
             case  GLFW_KEY_Y:
                 toModeLight();
-                break;
-            case  GLFW_KEY_V:
-                m_view_control.setPerspective();
-                break;
-            case  GLFW_KEY_B:
-                m_view_control.setOrthographic();
                 break;
             default:
                 break;

@@ -17,7 +17,7 @@ ViewControl::ViewControl()
     , m_viewUp {0.f, 1.f, 0.f}
     , m_trackball {}
     , m_project_mode {PERSPECTIVE}
-    , m_camera_move_mode {NORMAL} {
+    , m_camera_move_mode {TRACKBALL} {
         m_eyePos = m_trackball.toEyePos();
     }
 
@@ -123,7 +123,7 @@ void ViewControl::forward(float length) {
         m_trackball.forward(length);
         m_eyePos = m_trackball.toEyePos();
     } else {
-        m_eyePos[2] += length;
+        m_eyePos[2] -= length;
         m_trackball.fromEyePos(m_eyePos);
     }
 }
@@ -133,7 +133,7 @@ void ViewControl::backward(float length) {
         m_trackball.backward(length);
         m_eyePos = m_trackball.toEyePos();
     } else {
-        m_eyePos[2] -= length;
+        m_eyePos[2] += length;
         m_trackball.fromEyePos(m_eyePos);
     }
 }

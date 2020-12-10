@@ -12,7 +12,7 @@ namespace CSGY6533 {
 
 Object::Object() : m_model {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f}
                  , m_color {0.2f, 0.2f, 0.2f}
-                 , m_mode {MODE1} {
+                 , m_mode {MODE3} {
     m_vbo.init();
     m_ebo.init();
     m_nbo.init();
@@ -24,27 +24,44 @@ void Object::free() {
     m_nbo.free();
 }
 
-void Object::draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control, Texture& depth_texture) {
-    // getShadowMap(programs[SHADOW], light, view_control, depth_fbo, depth_texture);
+void Object::draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
     if (m_mode == MODE1) {
         drawWireframe(programs[WIREFRAME], light, view_control);
     } else if (m_mode == MODE2) {
-        drawFlatShading(programs[FLAT], light, view_control, depth_texture);
+        setFlatShading(programs[FLAT], view_control);
+        setPhongLighting(programs[FLAT], light, view_control, depth_texture);
+        simpleDraw();
         drawWireframe(programs[WIREFRAME], light, view_control);
     } else if (m_mode == MODE3) {
-        drawPhongShading(programs[PHONG], light, view_control, depth_texture);
+        setPhongShading(programs[PHONG], view_control);
+        setPhongLighting(programs[PHONG], light, view_control, depth_texture);
+        simpleDraw();
+    } else if (m_mode == MODE4) {
+        setPhongShading(programs[PHONG], view_control);
+        setMirrorLighting(programs[PHONG], light, view_control, depth_texture, skybox_texture);
+        simpleDraw();
+    } else if (m_mode == MODE5) {
+        setPhongShading(programs[PHONG], view_control);
+        setRefractLighting(programs[PHONG], light, view_control, depth_texture, skybox_texture);
+        simpleDraw();
+    } else if (m_mode == MODE6) {
+        setFlatShading(programs[FLAT], view_control);
+        setMirrorLighting(programs[FLAT], light, view_control, depth_texture, skybox_texture);
+        simpleDraw();
+    } else if (m_mode == MODE7) {
+        setFlatShading(programs[FLAT], view_control);
+        setRefractLighting(programs[FLAT], light, view_control, depth_texture, skybox_texture);
+        simpleDraw();
     }
 }
 
-void Object::simpleDraw(Program& program) {
+void Object::drawShadowMapping(Program& program) {
     program.bind();
     GLint uniModelMatrix = program.uniform("ModelMatrix");
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
 
     program.bindVertexAttribArray("position",m_vbo);
-
-    m_ebo.bind();
-    glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+    simpleDraw();
 }
 
 void Object::drawWireframe(Program& program, glm::vec3& light, ViewControl& view_control) {
@@ -63,49 +80,84 @@ void Object::drawWireframe(Program& program, glm::vec3& light, ViewControl& view
 
     program.bindVertexAttribArray("position",m_vbo);
 
-    m_ebo.bind();
-    glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+    simpleDraw();
     glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 }
 
-void Object::drawFlatShading(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture) {
+void Object::simpleDraw() {
+    m_ebo.bind();
+    glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+}
+
+void Object::setMirrorLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
+    program.bind();
+    GLint uniEyePosition = program.uniform("eyePosition");
+    glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
+    GLint uniLightPosition = program.uniform("lightPosition");
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    glActiveTexture(GL_TEXTURE0);
+    depth_texture.bind(GL_TEXTURE_CUBE_MAP);
+    glActiveTexture(GL_TEXTURE1);
+    skybox_texture.bind(GL_TEXTURE_CUBE_MAP);
+
+    GLint uniStrategy = program.uniform("lighting_strategy");
+    glUniform1i(uniStrategy, 2);
+}
+
+void Object::setRefractLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
+    program.bind();
+    GLint uniEyePosition = program.uniform("eyePosition");
+    glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
+    GLint uniLightPosition = program.uniform("lightPosition");
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    glActiveTexture(GL_TEXTURE0);
+    depth_texture.bind(GL_TEXTURE_CUBE_MAP);
+    glActiveTexture(GL_TEXTURE1);
+    skybox_texture.bind(GL_TEXTURE_CUBE_MAP);
+
+    GLint uniStrategy = program.uniform("lighting_strategy");
+    glUniform1i(uniStrategy, 3);
+}
+
+void Object::setPhongLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture) {
+    program.bind();
+
+    GLint uniColor = program.uniform("color");
+    glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
+    GLint uniEyePosition = program.uniform("eyePosition");
+    glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
+    GLint uniLightPosition = program.uniform("lightPosition");
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    GLint uniFarPlane = program.uniform("far_plane");
+    glUniform1f(uniFarPlane, view_control.far()); 
+    glActiveTexture(GL_TEXTURE0);
+    depth_texture.bind(GL_TEXTURE_CUBE_MAP);
+    GLint uniStrategy = program.uniform("lighting_strategy");
+    glUniform1i(uniStrategy, 1);
+}
+
+void Object::setFlatShading(Program& program, ViewControl& view_control) {
     program.bind();
 
     glm::mat4 MVPMatrix = view_control.getProjMatrix() *
                           view_control.getViewMatrix() *
                           getModelMatrix();
-    GLint uniColor = program.uniform("color");
-    glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
     GLint uniMVPMatrix = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
     glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
     GLint uniModelMatrix = program.uniform("ModelMatrix");
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
-    GLint uniEyePosition = program.uniform("eyePosition");
-    glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
-
-    GLint uniFarPlane = program.uniform("far_plane");
-    glUniform1f(uniFarPlane, view_control.far()); 
-    GLint uniLightPosition = program.uniform("lightPosition");
-    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
-    glActiveTexture(GL_TEXTURE0);
-    depth_texture.bind(GL_TEXTURE_CUBE_MAP);
 
     program.bindVertexAttribArray("position",m_vbo);
-
-    m_ebo.bind();
-    glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 }
 
-void Object::drawPhongShading(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture) {
+void Object::setPhongShading(Program& program, ViewControl& view_control) {
     program.bind();
 
     glm::mat4 MVPMatrix = view_control.getProjMatrix() *
                           view_control.getViewMatrix() *
                           getModelMatrix();
-    GLint uniColor = program.uniform("color");
-    glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
     GLint uniMVPMatrix = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
@@ -114,21 +166,9 @@ void Object::drawPhongShading(Program& program, glm::vec3& light, ViewControl& v
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
     GLint uniNormalMatrix = program.uniform("NormalMatrix");
     glUniformMatrix3fv(uniNormalMatrix, 1, GL_FALSE, glm::value_ptr(getNormalMatrix()));
-    GLint uniEyePosition = program.uniform("eyePosition");
-    glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
-
-    GLint uniFarPlane = program.uniform("far_plane");
-    glUniform1f(uniFarPlane, view_control.far()); 
-    GLint uniLightPosition = program.uniform("lightPosition");
-    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
-    glActiveTexture(GL_TEXTURE0);
-    depth_texture.bind(GL_TEXTURE_CUBE_MAP);
 
     program.bindVertexAttribArray("position",m_vbo);
     program.bindVertexAttribArray("vertex_normal", m_nbo);
-
-    m_ebo.bind();
-    glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 }
 
 void Object::loadFromOffFile(const std::string& path) {
@@ -323,17 +363,17 @@ void Geometry::getShadowTexture(Program& program, glm::vec3& light, ViewControl&
     GLint uniLightPosition = program.uniform("lightPosition");
     glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
     for (auto&& obj : m_objs) {
-        obj.simpleDraw(program);
+        obj.drawShadowMapping(program);
     }
     m_depth_fbo.unbind();
 }
 
-void Geometry::draw(std::vector<Program>& programs, ViewControl& view_control) {
+void Geometry::draw(std::vector<Program>& programs, ViewControl& view_control, Texture skybox_texture) {
     glViewport(0, 0, 1024, 1024);
     getShadowTexture(programs[SHADOW], m_light, view_control);
     glViewport(0, 0, view_control.screenWidth(), view_control.screenHeight());
     for (auto&& obj : m_objs) {
-        obj.draw(programs, m_light, view_control, m_depth_texture);
+        obj.draw(programs, m_light, view_control, m_depth_texture, skybox_texture);
     }
 }
 
@@ -342,7 +382,6 @@ void Geometry::addObjFromOffFile(const std::string& path) {
     obj.loadFromOffFile(path);
     obj.unitize();
     obj.update();
-    obj.setDisplayMode(Object::DisplayMode::MODE3);
     m_objs.push_back(obj);
 }
 
@@ -362,7 +401,7 @@ void Geometry::addPlane() {
     Object obj; 
     obj.loadFromOffFile("../../data/plane.off");
     obj.update();
-    obj.setDisplayMode(Object::DisplayMode::MODE3);
+    obj.setDisplayMode(Object::DisplayMode::MODE2);
     m_objs.push_back(obj);
 }
 

@@ -22,14 +22,18 @@ enum ShaderMode {
 class Object {
  public:
     enum DisplayMode {
-        MODE1 = 0,
-        MODE2 = 1,
-        MODE3 = 2,
+        MODE1 = 0,  // WIRE
+        MODE2 = 1,  // (FLAT + WIRE) + PHONG
+        MODE3 = 2,  // PHONG + PHONG
+        MODE4 = 3,  // PHONG + MIRROR
+        MODE5 = 4,  // PHONG + REFRACTION
+        MODE6 = 5,  // FLAT + MIRROR
+        MODE7 = 6,  // FLAT + REFRACTION
     };
     Object();
     void free();
-    void draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control, Texture& depth_texture);
-    void simpleDraw(Program& program);
+    void draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
+    void drawShadowMapping(Program& program);
     void loadFromOffFile(const std::string& path);
     void unitize();
     void update();
@@ -50,8 +54,12 @@ class Object {
     static std::pair<bool, float> intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
                                   const glm::vec3& e, const glm::vec3& d, float near, float far);
     void drawWireframe(Program& program, glm::vec3& light, ViewControl& view_control);
-    void drawFlatShading(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture);
-    void drawPhongShading(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture);
+    void setPhongShading(Program& program, ViewControl& view_control);
+    void setFlatShading(Program& program, ViewControl& view_control);
+    void setPhongLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture);
+    void setMirrorLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
+    void setRefractLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
+    void simpleDraw();
  private:
     std::vector<glm::vec3> m_vertices;
     std::vector<glm::vec3> m_vertex_normals;
@@ -74,7 +82,7 @@ class Geometry {
     void bind();
     void configShadowMap();
     size_t size() const;
-    void draw(std::vector<Program>& programs, ViewControl& view_control);
+    void draw(std::vector<Program>& programs, ViewControl& view_control, Texture skybox_texture);
     void addObjFromOffFile(const std::string& path);
 
     void addBunny();
