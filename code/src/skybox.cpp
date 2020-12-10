@@ -59,6 +59,8 @@ void Skybox::draw(Program& program, ViewControl& view_control) {
     GLint uniView = program.uniform("view");
     glm::mat4 view = glm::mat4(glm::mat3(view_control.getViewMatrix()));
     glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
+    GLint uniAR = program.uniform("AspectRatioMatrix");
+    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
     glActiveTexture(GL_TEXTURE0);
     m_texture.bind(GL_TEXTURE_CUBE_MAP);
 
