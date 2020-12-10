@@ -5,6 +5,7 @@
 #include "macro.h"
 #include "callbacks.h"
 #include "view_control.h"
+#include "skybox.h"
 
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
@@ -28,6 +29,7 @@
 
 using namespace CSGY6533;
 
+static Skybox skybox;
 static Geometry geometry;
 static ViewControl view_control;
 static Callbacks callbacks(geometry, view_control);
@@ -128,7 +130,14 @@ int main(void)
     // Initialize the VBO with the vertices data
     // A VBO is a data container that lives in the GPU memory
     geometry.init();
+    geometry.configShadowMap();
     geometry.bind();
+    geometry.addPlane();
+
+    skybox.init();
+    skybox.configCubeMap();
+    skybox.bind();
+    skybox.update();
 
     // Initialize the OpenGL Program
     // A program controls the OpenGL pipeline and it must contains
@@ -137,6 +146,15 @@ int main(void)
     programs[WIREFRAME] = ProgramFactory::createWireframeShader("outColor");
     programs[FLAT] = ProgramFactory::createFlatShader("outColor");
     programs[PHONG] = ProgramFactory::createPhongShader("outColor");
+    programs[SHADOW] = ProgramFactory::createShadowShader("");
+    programs[SHADOW].bind();
+    GLint uniDepthMap = programs[SHADOW].uniform("depthMap");
+    glUniform1i(uniDepthMap, 0);
+    programs[SKYBOX] = ProgramFactory::createSkyboxShader("outColor");
+    programs[SKYBOX].bind();
+    GLint uniSkybox = programs[SHADOW].uniform("skybox");
+    glUniform1i(uniSkybox, 0);
+
 
     // Compile the two shaders and upload the binary to the GPU
     // Note that we have to explicitly specify that the output "slot" called outColor
@@ -169,8 +187,6 @@ int main(void)
     // Loop until the user closes the window
     while (!glfwWindowShouldClose(window))
     {
-        // Bind your VAO (not necessary if you have only one)
-        geometry.bind();
 
         // Set the uniform value depending on the time difference
         auto t_now = std::chrono::high_resolution_clock::now();
@@ -188,10 +204,18 @@ int main(void)
         // glCullFace(GL_FRONT);
         // glGetIntegerv(GL_DEPTH_BITS, &i);
 
-        // Draw a triangle
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
 
+
+        geometry.bind();
         geometry.draw(programs, view_control);
+
+        glDepthFunc(GL_LEQUAL);
+        //glDepthMask(GL_FALSE);
+        skybox.bind();
+        skybox.draw(programs[SKYBOX], view_control);
+        // glBindVertexArray(0);
+        glDepthFunc(GL_LESS);
+        //glDepthMask(GL_TRUE);
 
         // Swap front and back buffers
         glfwSwapBuffers(window);
@@ -205,6 +229,7 @@ int main(void)
         program.free();
     }
     geometry.free();
+    skybox.free();
 
     // Deallocate glfw internals
     glfwTerminate();

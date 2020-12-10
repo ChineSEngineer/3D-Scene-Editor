@@ -128,6 +128,40 @@ class ElementBufferObject : public BufferObject {
     };
 };
 
+class Texture {
+ public:
+    typedef unsigned int GLuint;
+    typedef int GLint;
+
+    Texture() : id{0} {}
+    void init();
+    void bind(GLenum target);
+    void free();
+
+    GLuint id;
+};
+
+class FrameBufferObject {
+ public:
+    typedef unsigned int GLuint;
+    typedef int GLint;
+
+    FrameBufferObject() : id{0} {}
+    void init();
+    void bind();
+    void unbind();
+    void free();
+    void attach_depth_texture(Texture& texture);
+ private:
+    GLuint id;
+};
+
+// class CubeDepthTexture : TextureObject {
+//  public:
+//     void bind();
+//     void config();
+// };
+
 // This class wraps an OpenGL program composed of two shaders
 class Program
 {
@@ -172,6 +206,8 @@ class ProgramFactory {
     static Program createWireframeShader(const std::string &fragment_data_name);
     static Program createFlatShader(const std::string &fragment_data_name);
     static Program createPhongShader(const std::string &fragment_data_name);
+    static Program createShadowShader(const std::string &fragment_data_name);
+    static Program createSkyboxShader(const std::string &fragment_data_name);
  private:
     static std::string readShader(const std::string& shader);
 };

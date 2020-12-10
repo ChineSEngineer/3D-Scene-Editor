@@ -67,6 +67,13 @@ class DeleteState : public BaseState {
                       double xworld, double yworld) override;
 };
 
+class LightState : public BaseState {
+ public:
+    LightState(Geometry& geometry, ViewControl& view_control);
+    virtual ~LightState();
+    void keyboardCb(int key, int action) override;
+};
+
 class Callbacks {
  public:
     Callbacks(Geometry& geometry, ViewControl& m_view_control);
@@ -76,6 +83,7 @@ class Callbacks {
     void toModeMove();
     void toModeCamera();
     void toModeDelete();
+    void toModeLight();
     void mouseClickCb(int button, int action, double xworld, double yworld);
     void keyboardCb(int key, int action);
     void windowSizeCb(int width, int height);
@@ -86,7 +94,8 @@ class Callbacks {
         INSERT = 1,
         MOVE = 2,
         CAMERA = 3,
-        DELETE = 4
+        DELETE = 4,
+        LIGHT = 5
     };
     BaseState::ptr m_cur; 
     Geometry& m_geometry;

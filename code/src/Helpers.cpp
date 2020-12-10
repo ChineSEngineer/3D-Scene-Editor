@@ -48,6 +48,59 @@ void ElementBufferObject::bind()
   check_gl_error();
 }
 
+void Texture::init() {
+  glGenTextures(1, &id);
+  check_gl_error();
+}
+
+void Texture::bind(GLenum target) {
+  glBindTexture(target, id);
+}
+
+void Texture::free() {
+  glDeleteTextures(1, &id);
+  check_gl_error();
+}
+
+void FrameBufferObject::init() {
+  glGenFramebuffers(1, &id);
+  check_gl_error();
+}
+
+void FrameBufferObject::bind() {
+  glBindFramebuffer(GL_FRAMEBUFFER, id);
+  check_gl_error();
+}
+
+void FrameBufferObject::unbind() {
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  check_gl_error();
+}
+
+void FrameBufferObject::free() {
+  glDeleteFramebuffers(1, &id);
+  check_gl_error();
+}
+
+void FrameBufferObject::attach_depth_texture(Texture& texture) {
+  bind();
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture.id, 0);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
+  unbind();
+  check_gl_error();
+}
+
+
+
+// void CubeDepthTexture::bind() {
+//   bind(GL_TEXTURE_CUBE_MAP);
+// }
+// 
+// void CubeDepthTexture::config() {
+// 
+// }
+
 bool Program::init(
   const std::string &vertex_shader_string,
   const std::string &fragment_shader_string,
@@ -70,7 +123,9 @@ bool Program::init(
     glAttachShader(program_shader, geometry_shader);
   }
 
-  glBindFragDataLocation(program_shader, 0, fragment_data_name.c_str());
+  if (!fragment_data_name.empty()) {
+    glBindFragDataLocation(program_shader, 0, fragment_data_name.c_str());
+  }
   glLinkProgram(program_shader);
 
   GLint status;
@@ -200,6 +255,26 @@ Program ProgramFactory::createPhongShader(const std::string &fragment_data_name)
     std::string vertex_shader = readShader("../shader/phongshading.vert");
     std::string fragment_shader = readShader("../shader/phongshading.frag");
     std::string geometry_shader;
+    program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
+    return program;
+}
+
+Program ProgramFactory::createShadowShader(const std::string &fragment_data_name) {
+    Program program;
+    std::string vertex_shader = readShader("../shader/shadow.vert");
+    std::string fragment_shader = readShader("../shader/shadow.frag");
+    std::string geometry_shader = readShader("../shader/shadow.geom");
+    program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
+    program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
+    return program;
+}
+
+Program ProgramFactory::createSkyboxShader(const std::string &fragment_data_name) {
+    Program program;
+    std::string vertex_shader = readShader("../shader/skybox.vert");
+    std::string fragment_shader = readShader("../shader/skybox.frag");
+    std::string geometry_shader;
+    program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
     program.init(vertex_shader.data(), fragment_shader.data(), geometry_shader.data(), fragment_data_name);
     return program;
 }

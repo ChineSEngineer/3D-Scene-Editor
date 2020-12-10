@@ -16,7 +16,7 @@ ViewControl::ViewControl()
     , m_fov {40.f}
     , m_viewUp {0.f, 1.f, 0.f}
     , m_trackball {}
-    , m_project_mode {ORTHOGRAPHIC}
+    , m_project_mode {PERSPECTIVE}
     , m_camera_move_mode {NORMAL} {
         m_eyePos = m_trackball.toEyePos();
     }
@@ -47,6 +47,18 @@ glm::mat4 ViewControl::getPerspProjMatrix() {
 
 glm::mat4 ViewControl::getAspectRatioMatrix() {
     return glm::scale(glm::mat4(1.f), glm::vec3(static_cast<float>(m_height) / static_cast<float>(m_width), 1.f, 1.f));
+}
+
+std::vector<glm::mat4> ViewControl::getShadowMatrices(glm::vec3& lightPos) {
+    glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)1024 / (float)1024, m_n, m_f);
+    std::vector<glm::mat4> shadowTransforms;
+    shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
+    shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
+    shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)));
+    shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)));
+    shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
+    shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
+    return shadowTransforms;
 }
 
 glm::vec2 ViewControl::worldCoordinateFromView(float x, float y) {

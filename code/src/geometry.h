@@ -14,7 +14,9 @@ enum ShaderMode {
     WIREFRAME = 0,
     FLAT = 1,
     PHONG = 2,
-    N_SHADER = 3
+    SHADOW = 3,
+    SKYBOX = 4,
+    N_SHADER = 5
 };
 
 class Object {
@@ -26,7 +28,8 @@ class Object {
     };
     Object();
     void free();
-    void draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
+    void draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control, Texture& depth_texture);
+    void simpleDraw(Program& program);
     void loadFromOffFile(const std::string& path);
     void unitize();
     void update();
@@ -46,10 +49,9 @@ class Object {
  private:
     static std::pair<bool, float> intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
                                   const glm::vec3& e, const glm::vec3& d, float near, float far);
-    void drawWireframe(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
-    void drawFlatShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
-    void drawPhongShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control);
-
+    void drawWireframe(Program& program, glm::vec3& light, ViewControl& view_control);
+    void drawFlatShading(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture);
+    void drawPhongShading(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture);
  private:
     std::vector<glm::vec3> m_vertices;
     std::vector<glm::vec3> m_vertex_normals;
@@ -70,6 +72,7 @@ class Geometry {
     void init();
     void free();
     void bind();
+    void configShadowMap();
     size_t size() const;
     void draw(std::vector<Program>& programs, ViewControl& view_control);
     void addObjFromOffFile(const std::string& path);
@@ -77,6 +80,7 @@ class Geometry {
     void addBunny();
     void addBumpyCube();
     void addCube();
+    void addPlane();
     void deleteObject(int index);
 
     int intersectRay(const glm::vec3& e, const glm::vec3& d, float near, float far) const;
@@ -84,11 +88,15 @@ class Geometry {
     const Object& operator[](size_t index) const;
     Object& operator[](size_t index);
  private:
+    void getShadowTexture(Program& program, glm::vec3& light, ViewControl& view_control);
+ private:
     std::vector<Object> m_objs;
     VertexArrayObject m_vao;
     glm::vec3 m_light;
+    FrameBufferObject m_depth_fbo;
+    Texture m_depth_texture;
 };
 
-} // CSGY6533
+}  // CSGY6533
 
 #endif  // __GEOMETRY_H__

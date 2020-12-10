@@ -5,6 +5,7 @@
 #include <glm/vec3.hpp> // glm::vec3
 
 #include <utility>
+#include <vector>
 
 namespace CSGY6533 {
 
@@ -15,10 +16,13 @@ class ViewControl {
 
     float far() { return m_f; }
     float near() { return m_n; }
+    float screenHeight() { return m_height; }
+    float screenWidth() { return m_width; }
 
     glm::mat4 getViewMatrix();
     glm::mat4 getProjMatrix();
     glm::mat4 getAspectRatioMatrix();
+    std::vector<glm::mat4> getShadowMatrices(glm::vec3& lightPos);
 
     void setPerspective() { m_project_mode = PERSPECTIVE; }
     void setOrthographic() { m_project_mode = ORTHOGRAPHIC; }
@@ -39,7 +43,7 @@ class ViewControl {
     void setScreenSize(int height, int width);
     glm::vec3 getEyePosition() { return m_eyePos; }
 
- private:
+ public:
     glm::mat4 getOrthoProjMatrix();
     glm::mat4 getPerspProjMatrix();
 
@@ -62,7 +66,7 @@ class ViewControl {
      private:
         float m_beta = 90.f;
         float m_phi = 0.f;
-        float m_radius = 3.f;
+        float m_radius = 8.f;
     };
 
     enum ProjMode {

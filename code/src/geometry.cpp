@@ -24,19 +24,30 @@ void Object::free() {
     m_nbo.free();
 }
 
-void Object::draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control) {
+void Object::draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control, Texture& depth_texture) {
+    // getShadowMap(programs[SHADOW], light, view_control, depth_fbo, depth_texture);
     if (m_mode == MODE1) {
-        drawWireframe(programs, light, view_control);
+        drawWireframe(programs[WIREFRAME], light, view_control);
     } else if (m_mode == MODE2) {
-        drawFlatShading(programs, light, view_control);
-        drawWireframe(programs, light, view_control);
+        drawFlatShading(programs[FLAT], light, view_control, depth_texture);
+        drawWireframe(programs[WIREFRAME], light, view_control);
     } else if (m_mode == MODE3) {
-        drawPhongShading(programs, light, view_control);
+        drawPhongShading(programs[PHONG], light, view_control, depth_texture);
     }
 }
 
-void Object::drawWireframe(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control) {
-    Program program = programs[WIREFRAME];
+void Object::simpleDraw(Program& program) {
+    program.bind();
+    GLint uniModelMatrix = program.uniform("ModelMatrix");
+    glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
+
+    program.bindVertexAttribArray("position",m_vbo);
+
+    m_ebo.bind();
+    glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+}
+
+void Object::drawWireframe(Program& program, glm::vec3& light, ViewControl& view_control) {
     program.bind();
     glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
@@ -57,8 +68,7 @@ void Object::drawWireframe(std::vector<Program>& programs, glm::vec3& light, Vie
     glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 }
 
-void Object::drawFlatShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control) {
-    Program program = programs[FLAT];
+void Object::drawFlatShading(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture) {
     program.bind();
 
     glm::mat4 MVPMatrix = view_control.getProjMatrix() *
@@ -72,14 +82,23 @@ void Object::drawFlatShading(std::vector<Program>& programs, glm::vec3& light, V
     glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
     GLint uniModelMatrix = program.uniform("ModelMatrix");
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
+    GLint uniEyePosition = program.uniform("eyePosition");
+    glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
+
+    GLint uniFarPlane = program.uniform("far_plane");
+    glUniform1f(uniFarPlane, view_control.far()); 
+    GLint uniLightPosition = program.uniform("lightPosition");
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    glActiveTexture(GL_TEXTURE0);
+    depth_texture.bind(GL_TEXTURE_CUBE_MAP);
+
     program.bindVertexAttribArray("position",m_vbo);
 
     m_ebo.bind();
     glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 }
 
-void Object::drawPhongShading(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control) {
-    Program program = programs[PHONG];
+void Object::drawPhongShading(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture) {
     program.bind();
 
     glm::mat4 MVPMatrix = view_control.getProjMatrix() *
@@ -95,6 +114,16 @@ void Object::drawPhongShading(std::vector<Program>& programs, glm::vec3& light, 
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
     GLint uniNormalMatrix = program.uniform("NormalMatrix");
     glUniformMatrix3fv(uniNormalMatrix, 1, GL_FALSE, glm::value_ptr(getNormalMatrix()));
+    GLint uniEyePosition = program.uniform("eyePosition");
+    glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
+
+    GLint uniFarPlane = program.uniform("far_plane");
+    glUniform1f(uniFarPlane, view_control.far()); 
+    GLint uniLightPosition = program.uniform("lightPosition");
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    glActiveTexture(GL_TEXTURE0);
+    depth_texture.bind(GL_TEXTURE_CUBE_MAP);
+
     program.bindVertexAttribArray("position",m_vbo);
     program.bindVertexAttribArray("vertex_normal", m_nbo);
 
@@ -250,6 +279,8 @@ Geometry::Geometry() : m_light {1.f, 1.f, 1.f} {}
 
 void Geometry::init() {
     m_vao.init();
+    m_depth_fbo.init();
+    m_depth_texture.init();
 }
 
 void Geometry::free() {
@@ -257,15 +288,52 @@ void Geometry::free() {
     for (auto&& obj : m_objs) {
         obj.free();
     }
+    m_depth_fbo.free();
+    m_depth_texture.free();
 }
 
 void Geometry::bind() {
     m_vao.bind();
 }
 
-void Geometry::draw(std::vector<Program>& programs, ViewControl& view_control) {
+void Geometry::configShadowMap() {
+    m_depth_texture.bind(GL_TEXTURE_CUBE_MAP);
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, 1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    m_depth_fbo.attach_depth_texture(m_depth_texture);
+}
+
+void Geometry::getShadowTexture(Program& program, glm::vec3& light, ViewControl& view_control) {
+    m_depth_fbo.bind();
+    glClear(GL_DEPTH_BUFFER_BIT);
+    program.bind();
+    std::vector<glm::mat4> shadowMatrices = view_control.getShadowMatrices(light);
+    for (int i = 0; i < 6; ++i) {
+        GLint uniShadowMatrix_i = program.uniform("shadowMatrices[" + std::to_string(i) + "]");
+        glUniformMatrix4fv(uniShadowMatrix_i, 1, GL_FALSE, glm::value_ptr(shadowMatrices[i]));
+    }
+    GLint uniFarPlane = program.uniform("far_plane");
+    glUniform1f(uniFarPlane, view_control.far()); 
+    GLint uniLightPosition = program.uniform("lightPosition");
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
     for (auto&& obj : m_objs) {
-        obj.draw(programs, m_light, view_control);
+        obj.simpleDraw(program);
+    }
+    m_depth_fbo.unbind();
+}
+
+void Geometry::draw(std::vector<Program>& programs, ViewControl& view_control) {
+    glViewport(0, 0, 1024, 1024);
+    getShadowTexture(programs[SHADOW], m_light, view_control);
+    glViewport(0, 0, view_control.screenWidth(), view_control.screenHeight());
+    for (auto&& obj : m_objs) {
+        obj.draw(programs, m_light, view_control, m_depth_texture);
     }
 }
 
@@ -274,6 +342,7 @@ void Geometry::addObjFromOffFile(const std::string& path) {
     obj.loadFromOffFile(path);
     obj.unitize();
     obj.update();
+    obj.setDisplayMode(Object::DisplayMode::MODE3);
     m_objs.push_back(obj);
 }
 
@@ -287,6 +356,14 @@ void Geometry::addBumpyCube() {
 
 void Geometry::addCube() {
     addObjFromOffFile("../../data/cube.off");
+}
+
+void Geometry::addPlane() {
+    Object obj; 
+    obj.loadFromOffFile("../../data/plane.off");
+    obj.update();
+    obj.setDisplayMode(Object::DisplayMode::MODE3);
+    m_objs.push_back(obj);
 }
 
 void Geometry::deleteObject(int index) {

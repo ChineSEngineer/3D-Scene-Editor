@@ -234,6 +234,27 @@ void DeleteState::mouseClickCb(int button, int action,
     }
 }
 
+LightState::LightState(Geometry& geometry,
+                       ViewControl& view_control)
+    : BaseState(geometry, view_control) {}
+
+LightState::~LightState() {}
+
+void LightState::keyboardCb(int key, int action) {
+    if(GLFW_PRESS == action) {
+        switch (key) {
+            case GLFW_KEY_W:
+                break;
+            case GLFW_KEY_S:
+                break;
+            case GLFW_KEY_A:
+                break;
+            case GLFW_KEY_D:
+                break;
+        }
+    }
+}
+
 Callbacks::Callbacks(Geometry& geometry, ViewControl& view_control)
     : m_geometry {geometry}
     , m_view_control {view_control}
@@ -266,6 +287,11 @@ void Callbacks::toModeDelete() {
     m_cur.reset(new DeleteState(m_geometry, m_view_control));
 }
 
+void Callbacks::toModeLight() {
+    if (m_mode == LIGHT) return;
+    m_cur.reset(new LightState(m_geometry, m_view_control));
+}
+
 void Callbacks::mouseClickCb(int button, int action, double screen_x, double screen_y) {
     m_cur->mouseClickCb(button, action, screen_x, screen_y);
 }
@@ -285,6 +311,9 @@ void Callbacks::keyboardCb(int key, int action) {
                 break;
             case  GLFW_KEY_U:
                 toModeCamera();
+                break;
+            case  GLFW_KEY_Y:
+                toModeLight();
                 break;
             case  GLFW_KEY_V:
                 m_view_control.setPerspective();
