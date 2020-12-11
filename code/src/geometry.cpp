@@ -10,6 +10,8 @@
 
 namespace CSGY6533 {
 
+static bool red_shadow = false;
+
 Object::Object() : m_model {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f}
                  , m_color {0.2f, 0.2f, 0.2f}
                  , m_mode {MODE3} {
@@ -99,6 +101,8 @@ void Object::setMirrorLighting(Program& program, Light& light, ViewControl& view
     depth_texture.bind(GL_TEXTURE_CUBE_MAP);
     glActiveTexture(GL_TEXTURE1);
     skybox_texture.bind(GL_TEXTURE_CUBE_MAP);
+    GLint uniRedShadow = program.uniform("red_shadow");
+    glUniform1i(uniRedShadow, red_shadow);
 
     GLint uniStrategy = program.uniform("lighting_strategy");
     glUniform1i(uniStrategy, 2);
@@ -114,6 +118,8 @@ void Object::setRefractLighting(Program& program, Light& light, ViewControl& vie
     depth_texture.bind(GL_TEXTURE_CUBE_MAP);
     glActiveTexture(GL_TEXTURE1);
     skybox_texture.bind(GL_TEXTURE_CUBE_MAP);
+    GLint uniRedShadow = program.uniform("red_shadow");
+    glUniform1i(uniRedShadow, red_shadow);
 
     GLint uniStrategy = program.uniform("lighting_strategy");
     glUniform1i(uniStrategy, 3);
@@ -132,6 +138,9 @@ void Object::setPhongLighting(Program& program, Light& light, ViewControl& view_
     glUniform1f(uniFarPlane, view_control.far()); 
     glActiveTexture(GL_TEXTURE0);
     depth_texture.bind(GL_TEXTURE_CUBE_MAP);
+    GLint uniRedShadow = program.uniform("red_shadow");
+    glUniform1i(uniRedShadow, red_shadow);
+
     GLint uniStrategy = program.uniform("lighting_strategy");
     glUniform1i(uniStrategy, 1);
 }
@@ -433,6 +442,10 @@ const Object& Geometry::operator[](size_t index) const {
 
 Object& Geometry::operator[](size_t index) {
    return m_objs[index];
+}
+
+void Geometry::redShadow() {
+    red_shadow = !red_shadow;
 }
 
 }  // CSGY6533

@@ -264,10 +264,13 @@ void LightState::keyboardCb(int key, int action) {
             case GLFW_KEY_W:
                 break;
             case GLFW_KEY_S:
+                m_geometry.redShadow();
                 break;
             case GLFW_KEY_A:
+                m_geometry.getLight().left(0.1f);
                 break;
             case GLFW_KEY_D:
+                m_geometry.getLight().right(0.1f);
                 break;
         }
     }

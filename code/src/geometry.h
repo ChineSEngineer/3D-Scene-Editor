@@ -96,6 +96,8 @@ class Geometry {
 
     const Object& operator[](size_t index) const;
     Object& operator[](size_t index);
+    Light& getLight() { return m_light; }
+    void redShadow();
  private:
     void getShadowTexture(Program& program, Light& light, ViewControl& view_control);
  private:
