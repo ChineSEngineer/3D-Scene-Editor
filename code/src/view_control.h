@@ -1,8 +1,7 @@
 #ifndef __VIEW_CONTROL_H__
 #define __VIEW_CONTROL_H__
 
-#include <glm/glm.hpp> // glm::vec3
-#include <glm/vec3.hpp> // glm::vec3
+#include "trackball.h"
 
 #include <utility>
 #include <vector>
@@ -22,7 +21,7 @@ class ViewControl {
     glm::mat4 getViewMatrix();
     glm::mat4 getProjMatrix();
     glm::mat4 getAspectRatioMatrix();
-    std::vector<glm::mat4> getShadowMatrices(glm::vec3& lightPos);
+    std::vector<glm::mat4> getShadowMatrices(const glm::vec3& lightPos);
 
     void setPerspective() { m_project_mode = PERSPECTIVE; }
     void setOrthographic() { m_project_mode = ORTHOGRAPHIC; }
@@ -48,33 +47,11 @@ class ViewControl {
     glm::mat4 getPerspProjMatrix();
 
  private:
-    class Trackball {
-     public:
-        void left(float length);
-        void right(float length);
-        void up(float length);
-        void down(float length);
-        void forward(float length);
-        void backward(float length);
-        glm::vec3 toEyePos() const;
-        void fromEyePos(const glm::vec3& eyePos);
-        
-     private:
-        static float d2r(float d);
-        static float r2d(float d);
-        float lengthToDegree(float length);
-     private:
-        float m_beta = 90.f;
-        float m_phi = 0.f;
-        float m_radius = 5.f;
-    };
-
     enum ProjMode {
         ORTHOGRAPHIC,
         PERSPECTIVE
     };
 
- private:
     enum CameraMoveMode {
         NORMAL = 1,
         TRACKBALL = 2

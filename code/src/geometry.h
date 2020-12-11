@@ -3,6 +3,7 @@
 
 #include "Helpers.h"
 #include "view_control.h"
+#include "light.h"
 
 #include <glm/glm.hpp> // glm::vec3
 #include <glm/vec3.hpp>
@@ -32,7 +33,7 @@ class Object {
     };
     Object();
     void free();
-    void draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
+    void draw(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
     void drawShadowMapping(Program& program);
     void loadFromOffFile(const std::string& path);
     void unitize();
@@ -53,12 +54,12 @@ class Object {
  private:
     static std::pair<bool, float> intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
                                   const glm::vec3& e, const glm::vec3& d, float near, float far);
-    void drawWireframe(Program& program, glm::vec3& light, ViewControl& view_control);
+    void drawWireframe(Program& program, Light& light, ViewControl& view_control);
     void setPhongShading(Program& program, ViewControl& view_control);
     void setFlatShading(Program& program, ViewControl& view_control);
-    void setPhongLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture);
-    void setMirrorLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
-    void setRefractLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
+    void setPhongLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture);
+    void setMirrorLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
+    void setRefractLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
     void simpleDraw();
  private:
     std::vector<glm::vec3> m_vertices;
@@ -96,11 +97,11 @@ class Geometry {
     const Object& operator[](size_t index) const;
     Object& operator[](size_t index);
  private:
-    void getShadowTexture(Program& program, glm::vec3& light, ViewControl& view_control);
+    void getShadowTexture(Program& program, Light& light, ViewControl& view_control);
  private:
     std::vector<Object> m_objs;
     VertexArrayObject m_vao;
-    glm::vec3 m_light;
+    Light m_light;
     FrameBufferObject m_depth_fbo;
     Texture m_depth_texture;
 };

@@ -24,7 +24,7 @@ void Object::free() {
     m_nbo.free();
 }
 
-void Object::draw(std::vector<Program>& programs, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
+void Object::draw(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
     if (m_mode == MODE1) {
         drawWireframe(programs[WIREFRAME], light, view_control);
     } else if (m_mode == MODE2) {
@@ -64,7 +64,7 @@ void Object::drawShadowMapping(Program& program) {
     simpleDraw();
 }
 
-void Object::drawWireframe(Program& program, glm::vec3& light, ViewControl& view_control) {
+void Object::drawWireframe(Program& program, Light& light, ViewControl& view_control) {
     program.bind();
     glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
@@ -89,12 +89,12 @@ void Object::simpleDraw() {
     glDrawElements(GL_TRIANGLES, m_ebo.cols, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 }
 
-void Object::setMirrorLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
+void Object::setMirrorLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
     program.bind();
     GLint uniEyePosition = program.uniform("eyePosition");
     glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
     GLint uniLightPosition = program.uniform("lightPosition");
-    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light.getPosition())); 
     glActiveTexture(GL_TEXTURE0);
     depth_texture.bind(GL_TEXTURE_CUBE_MAP);
     glActiveTexture(GL_TEXTURE1);
@@ -104,12 +104,12 @@ void Object::setMirrorLighting(Program& program, glm::vec3& light, ViewControl& 
     glUniform1i(uniStrategy, 2);
 }
 
-void Object::setRefractLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
+void Object::setRefractLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
     program.bind();
     GLint uniEyePosition = program.uniform("eyePosition");
     glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
     GLint uniLightPosition = program.uniform("lightPosition");
-    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light.getPosition())); 
     glActiveTexture(GL_TEXTURE0);
     depth_texture.bind(GL_TEXTURE_CUBE_MAP);
     glActiveTexture(GL_TEXTURE1);
@@ -119,7 +119,7 @@ void Object::setRefractLighting(Program& program, glm::vec3& light, ViewControl&
     glUniform1i(uniStrategy, 3);
 }
 
-void Object::setPhongLighting(Program& program, glm::vec3& light, ViewControl& view_control, Texture& depth_texture) {
+void Object::setPhongLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture) {
     program.bind();
 
     GLint uniColor = program.uniform("color");
@@ -127,7 +127,7 @@ void Object::setPhongLighting(Program& program, glm::vec3& light, ViewControl& v
     GLint uniEyePosition = program.uniform("eyePosition");
     glUniform3fv(uniEyePosition, 1, glm::value_ptr(view_control.getEyePosition())); 
     GLint uniLightPosition = program.uniform("lightPosition");
-    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light.getPosition())); 
     GLint uniFarPlane = program.uniform("far_plane");
     glUniform1f(uniFarPlane, view_control.far()); 
     glActiveTexture(GL_TEXTURE0);
@@ -315,7 +315,7 @@ std::pair<bool, float> Object::intersectTriangle(const glm::vec3& a, const glm::
 }
 
 
-Geometry::Geometry() : m_light {1.f, 1.f, 1.f} {}
+Geometry::Geometry() : m_light {1.f, 1.f, 1.f} { }
 
 void Geometry::init() {
     m_vao.init();
@@ -349,11 +349,11 @@ void Geometry::configShadowMap() {
     m_depth_fbo.attach_depth_texture(m_depth_texture);
 }
 
-void Geometry::getShadowTexture(Program& program, glm::vec3& light, ViewControl& view_control) {
+void Geometry::getShadowTexture(Program& program, Light& light, ViewControl& view_control) {
     m_depth_fbo.bind();
     glClear(GL_DEPTH_BUFFER_BIT);
     program.bind();
-    std::vector<glm::mat4> shadowMatrices = view_control.getShadowMatrices(light);
+    std::vector<glm::mat4> shadowMatrices = view_control.getShadowMatrices(light.getPosition());
     for (int i = 0; i < 6; ++i) {
         GLint uniShadowMatrix_i = program.uniform("shadowMatrices[" + std::to_string(i) + "]");
         glUniformMatrix4fv(uniShadowMatrix_i, 1, GL_FALSE, glm::value_ptr(shadowMatrices[i]));
@@ -361,7 +361,7 @@ void Geometry::getShadowTexture(Program& program, glm::vec3& light, ViewControl&
     GLint uniFarPlane = program.uniform("far_plane");
     glUniform1f(uniFarPlane, view_control.far()); 
     GLint uniLightPosition = program.uniform("lightPosition");
-    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light)); 
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light.getPosition())); 
     for (auto&& obj : m_objs) {
         obj.drawShadowMapping(program);
     }
