@@ -190,7 +190,7 @@ int main(void)
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     int width, height;
-    glfwGetWindowSize(window, &width, &height);
+    glfwGetFramebufferSize(window, &width, &height);
     framebuffer_size_callback(window, width, height);
 
     glEnable(GL_DEPTH_TEST);
