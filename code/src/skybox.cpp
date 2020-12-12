@@ -55,16 +55,18 @@ void Skybox::configCubeMap() {
 void Skybox::draw(Program& program, ViewControl& view_control, bool isEnvMap) {
     program.bind();
 
-    glm::mat4 VPMatrix;
+    glm::mat4 VPMatrix, aspectRatioMatrix;
     if (isEnvMap) {
         VPMatrix = m_envVPMatrix;
+	aspectRatioMatrix = glm::mat4(1.f);
     } else {
         VPMatrix = view_control.getProjMatrix() * glm::mat4(glm::mat3(view_control.getViewMatrix()));
+	aspectRatioMatrix = view_control.getAspectRatioMatrix();
     }
     GLint uniVPMatrix = program.uniform("VPMatrix");
     glUniformMatrix4fv(uniVPMatrix, 1, GL_FALSE, glm::value_ptr(VPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
-    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
+    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(aspectRatioMatrix));
     glActiveTexture(GL_TEXTURE0);
     m_texture.bind(GL_TEXTURE_CUBE_MAP);
 
