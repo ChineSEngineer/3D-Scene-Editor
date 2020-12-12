@@ -27,4 +27,4 @@ void main() {
     }
 
     EndPrimitive();
-};
+}

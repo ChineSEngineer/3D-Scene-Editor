@@ -78,7 +78,7 @@ void phongLighting() {
         result = (ambient + (1 - shadow) * (diffuse + specular)) * color;
     }
     outColor = vec4(result, 1.0);
-};
+}
 
 void mirrorLighting() {
     // ambient
