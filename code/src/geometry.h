@@ -61,7 +61,7 @@ class Object {
  private:
     static std::pair<bool, float> intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
                                   const glm::vec3& e, const glm::vec3& d, float near, float far);
-    void drawWireframe(Program& program, Light& light, ViewControl& view_control);
+    void drawWireframe(Program& program, Light& light, ViewControl& view_control, bool isEnvMap);
     void setPhongShading(Program& program, ViewControl& view_control, bool isEnvMap);
     void setFlatShading(Program& program, ViewControl& view_control, bool isEnvMap);
     void setPhongLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture);

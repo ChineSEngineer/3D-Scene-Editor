@@ -11,8 +11,8 @@ namespace CSGY6533 {
 ViewControl::ViewControl() 
     : m_l {-1.f}, m_r {1.f}
     , m_b {-1.f}, m_t {1.f}
-    , m_n {0.1f}, m_f {100.f}
-    , m_fov {40.f}
+    , m_n {0.1f}, m_f {20.f}
+    , m_fov {45.f}
     , m_viewUp {0.f, 1.f, 0.f}
     , m_trackball {5.f, 90.f, 0.f}
     , m_project_mode {PERSPECTIVE}

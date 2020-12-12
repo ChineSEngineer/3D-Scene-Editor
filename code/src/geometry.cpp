@@ -7,6 +7,7 @@
 
 #include <limits>
 #include <algorithm>
+#include <cmath>
 
 namespace CSGY6533 {
 
@@ -35,12 +36,12 @@ void Object::free() {
 
 void Object::draw(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture, bool isEnvMap) {
     if (m_mode == MODE1) {
-        drawWireframe(programs[WIREFRAME], light, view_control);
+        drawWireframe(programs[WIREFRAME], light, view_control, isEnvMap);
     } else if (m_mode == MODE2) {
         setFlatShading(programs[FLAT], view_control, isEnvMap);
         setPhongLighting(programs[FLAT], light, view_control, depth_texture);
         simpleDraw();
-        drawWireframe(programs[WIREFRAME], light, view_control);
+        drawWireframe(programs[WIREFRAME], light, view_control, isEnvMap);
     } else if (m_mode == MODE3) {
         setPhongShading(programs[PHONG], view_control, isEnvMap);
         setPhongLighting(programs[PHONG], light, view_control, depth_texture);
@@ -78,19 +79,26 @@ void Object::drawShadowMapping(Program& program) {
     simpleDraw();
 }
 
-void Object::drawWireframe(Program& program, Light& light, ViewControl& view_control) {
+void Object::drawWireframe(Program& program, Light& light, ViewControl& view_control, bool isEnvMap) {
     program.bind();
     glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
-    glm::mat4 MVPMatrix = view_control.getProjMatrix() *
-                          view_control.getViewMatrix() *
-                          getModelMatrix();
+    glm::mat4 MVPMatrix, aspectRatioMatrix;
+    if (isEnvMap) {
+        MVPMatrix = m_envVPMatrix * getModelMatrix();
+	aspectRatioMatrix = glm::mat4(1.0f);
+    } else {
+        MVPMatrix = view_control.getProjMatrix() *
+                    view_control.getViewMatrix() *
+                    getModelMatrix();
+	aspectRatioMatrix = view_control.getAspectRatioMatrix();
+    }
     GLint uniColor = program.uniform("Color");
     glUniform3fv(uniColor, 1, glm::value_ptr(m_color));
     GLint uniMVP = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVP, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
-    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
+    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(aspectRatioMatrix));
 
     program.bindVertexAttribArray("position",m_vbo);
 
@@ -160,18 +168,20 @@ void Object::setPhongLighting(Program& program, Light& light, ViewControl& view_
 void Object::setFlatShading(Program& program, ViewControl& view_control, bool isEnvMap) {
     program.bind();
 
-    glm::mat4 MVPMatrix;
+    glm::mat4 MVPMatrix, aspectRatioMatrix;
     if (isEnvMap) {
         MVPMatrix = m_envVPMatrix * getModelMatrix();
+	aspectRatioMatrix = glm::mat4(1.0f);
     } else {
         MVPMatrix = view_control.getProjMatrix() *
                     view_control.getViewMatrix() *
                     getModelMatrix();
+	aspectRatioMatrix = view_control.getAspectRatioMatrix();
     }
     GLint uniMVPMatrix = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
-    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
+    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(aspectRatioMatrix));
     GLint uniModelMatrix = program.uniform("ModelMatrix");
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
 
@@ -181,18 +191,20 @@ void Object::setFlatShading(Program& program, ViewControl& view_control, bool is
 void Object::setPhongShading(Program& program, ViewControl& view_control, bool isEnvMap) {
     program.bind();
 
-    glm::mat4 MVPMatrix;
+    glm::mat4 MVPMatrix, aspectRatioMatrix;
     if (isEnvMap) {
         MVPMatrix = m_envVPMatrix * getModelMatrix();
+	aspectRatioMatrix = glm::mat4(1.0f);
     } else {
         MVPMatrix = view_control.getProjMatrix() *
                           view_control.getViewMatrix() *
                           getModelMatrix();
+	aspectRatioMatrix = view_control.getAspectRatioMatrix();
     }
     GLint uniMVPMatrix = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
-    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
+    glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(aspectRatioMatrix));
     GLint uniModelMatrix = program.uniform("ModelMatrix");
     glUniformMatrix4fv(uniModelMatrix, 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
     GLint uniNormalMatrix = program.uniform("NormalMatrix");
@@ -253,8 +265,8 @@ void Object::configEnvMap() {
                      GL_FLOAT,
                      NULL);
     }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -357,7 +369,7 @@ glm::mat3 Object::getNormalMatrix() const {
 }
 
 std::vector<glm::mat4> Object::getEnvVPMatrices() const {
-    glm::mat4 envProj = glm::perspective(glm::radians(90.0f), (float)s_env_width / (float)s_env_height, m_model[6] * 0.3f, 100.f);
+    glm::mat4 envProj = glm::perspective(glm::radians(90.f), (float)s_env_width / (float)s_env_height, 0.5f * m_model[6], 20.f);
     std::vector<glm::mat4> envVPMatrices;
     glm::vec3 objPos = {m_model[0], m_model[1], m_model[2]};
     envVPMatrices.push_back(envProj * glm::lookAt(objPos, objPos + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
