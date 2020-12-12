@@ -18,43 +18,55 @@ Object::Object() : m_model {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f}
     m_vbo.init();
     m_ebo.init();
     m_nbo.init();
+    
+    env_fbo.init();
+    env_texture.init();
+    configEnvMap();
 }
 
 void Object::free() {
     m_vbo.free();
     m_ebo.free();
     m_nbo.free();
+
+    env_fbo.free();
+    env_texture.free();
 }
 
-void Object::draw(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture) {
+void Object::draw(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture, bool isEnvMap) {
     if (m_mode == MODE1) {
         drawWireframe(programs[WIREFRAME], light, view_control);
     } else if (m_mode == MODE2) {
-        setFlatShading(programs[FLAT], view_control);
+        setFlatShading(programs[FLAT], view_control, isEnvMap);
         setPhongLighting(programs[FLAT], light, view_control, depth_texture);
         simpleDraw();
         drawWireframe(programs[WIREFRAME], light, view_control);
     } else if (m_mode == MODE3) {
-        setPhongShading(programs[PHONG], view_control);
+        setPhongShading(programs[PHONG], view_control, isEnvMap);
         setPhongLighting(programs[PHONG], light, view_control, depth_texture);
         simpleDraw();
     } else if (m_mode == MODE4) {
-        setPhongShading(programs[PHONG], view_control);
+        setPhongShading(programs[PHONG], view_control, isEnvMap);
         setMirrorLighting(programs[PHONG], light, view_control, depth_texture, skybox_texture);
         simpleDraw();
     } else if (m_mode == MODE5) {
-        setPhongShading(programs[PHONG], view_control);
+        setPhongShading(programs[PHONG], view_control, isEnvMap);
         setRefractLighting(programs[PHONG], light, view_control, depth_texture, skybox_texture);
         simpleDraw();
-    } else if (m_mode == MODE6) {
-        setFlatShading(programs[FLAT], view_control);
+    } else if (m_mode == MODE6 || m_mode == MODE8) {
+        setFlatShading(programs[FLAT], view_control, isEnvMap);
         setMirrorLighting(programs[FLAT], light, view_control, depth_texture, skybox_texture);
         simpleDraw();
     } else if (m_mode == MODE7) {
-        setFlatShading(programs[FLAT], view_control);
+        setFlatShading(programs[FLAT], view_control, isEnvMap);
         setRefractLighting(programs[FLAT], light, view_control, depth_texture, skybox_texture);
         simpleDraw();
     }
+}
+
+void Object::drawEnvMapping(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture, glm::mat4& envVPMatrix) {
+    m_envVPMatrix = envVPMatrix;
+    draw(programs, light, view_control, depth_texture, skybox_texture, true);
 }
 
 void Object::drawShadowMapping(Program& program) {
@@ -145,12 +157,17 @@ void Object::setPhongLighting(Program& program, Light& light, ViewControl& view_
     glUniform1i(uniStrategy, 1);
 }
 
-void Object::setFlatShading(Program& program, ViewControl& view_control) {
+void Object::setFlatShading(Program& program, ViewControl& view_control, bool isEnvMap) {
     program.bind();
 
-    glm::mat4 MVPMatrix = view_control.getProjMatrix() *
-                          view_control.getViewMatrix() *
-                          getModelMatrix();
+    glm::mat4 MVPMatrix;
+    if (isEnvMap) {
+        MVPMatrix = m_envVPMatrix * getModelMatrix();
+    } else {
+        MVPMatrix = view_control.getProjMatrix() *
+                    view_control.getViewMatrix() *
+                    getModelMatrix();
+    }
     GLint uniMVPMatrix = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
@@ -161,12 +178,17 @@ void Object::setFlatShading(Program& program, ViewControl& view_control) {
     program.bindVertexAttribArray("position",m_vbo);
 }
 
-void Object::setPhongShading(Program& program, ViewControl& view_control) {
+void Object::setPhongShading(Program& program, ViewControl& view_control, bool isEnvMap) {
     program.bind();
 
-    glm::mat4 MVPMatrix = view_control.getProjMatrix() *
+    glm::mat4 MVPMatrix;
+    if (isEnvMap) {
+        MVPMatrix = m_envVPMatrix * getModelMatrix();
+    } else {
+        MVPMatrix = view_control.getProjMatrix() *
                           view_control.getViewMatrix() *
                           getModelMatrix();
+    }
     GLint uniMVPMatrix = program.uniform("MVPMatrix");
     glUniformMatrix4fv(uniMVPMatrix, 1, GL_FALSE, glm::value_ptr(MVPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
@@ -218,7 +240,31 @@ void Object::update() {
     m_nbo.update(m_vertex_normals);
 }
 
+void Object::configEnvMap() {
+    env_texture.bind(GL_TEXTURE_CUBE_MAP);
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                     0,
+                     GL_RGBA,
+                     s_env_width,
+                     s_env_height,
+                     0,
+                     GL_RGBA,
+                     GL_FLOAT,
+                     NULL);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    env_fbo.attach_color_texture(env_texture);
+}
+
 void Object::setDisplayMode(DisplayMode mode) { m_mode =  mode; }
+
+Object::DisplayMode Object::getDisplayMode() { return m_mode; }
+
 
 void Object::translate(float x, float y, float z) {
     m_model[0] += x;
@@ -310,6 +356,19 @@ glm::mat3 Object::getNormalMatrix() const {
     // return glm::mat3(1.0);
 }
 
+std::vector<glm::mat4> Object::getEnvVPMatrices() const {
+    glm::mat4 envProj = glm::perspective(glm::radians(90.0f), (float)s_env_width / (float)s_env_height, m_model[6] * 0.3f, 100.f);
+    std::vector<glm::mat4> envVPMatrices;
+    glm::vec3 objPos = {m_model[0], m_model[1], m_model[2]};
+    envVPMatrices.push_back(envProj * glm::lookAt(objPos, objPos + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
+    envVPMatrices.push_back(envProj * glm::lookAt(objPos, objPos + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
+    envVPMatrices.push_back(envProj * glm::lookAt(objPos, objPos + glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)));
+    envVPMatrices.push_back(envProj * glm::lookAt(objPos, objPos + glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)));
+    envVPMatrices.push_back(envProj * glm::lookAt(objPos, objPos + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
+    envVPMatrices.push_back(envProj * glm::lookAt(objPos, objPos + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f)));
+    return envVPMatrices;
+}
+
 std::pair<bool, float> Object::intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
                                const glm::vec3& e, const glm::vec3& d, float near, float far) {
     // Textbook 4.4.2
@@ -358,11 +417,11 @@ void Geometry::configShadowMap() {
     m_depth_fbo.attach_depth_texture(m_depth_texture);
 }
 
-void Geometry::getShadowTexture(Program& program, Light& light, ViewControl& view_control) {
+void Geometry::getShadowTexture(Program& program, ViewControl& view_control) {
     m_depth_fbo.bind();
     glClear(GL_DEPTH_BUFFER_BIT);
     program.bind();
-    std::vector<glm::mat4> shadowMatrices = view_control.getShadowMatrices(light.getPosition());
+    std::vector<glm::mat4> shadowMatrices = view_control.getShadowMatrices(m_light.getPosition());
     for (int i = 0; i < 6; ++i) {
         GLint uniShadowMatrix_i = program.uniform("shadowMatrices[" + std::to_string(i) + "]");
         glUniformMatrix4fv(uniShadowMatrix_i, 1, GL_FALSE, glm::value_ptr(shadowMatrices[i]));
@@ -370,19 +429,53 @@ void Geometry::getShadowTexture(Program& program, Light& light, ViewControl& vie
     GLint uniFarPlane = program.uniform("far_plane");
     glUniform1f(uniFarPlane, view_control.far()); 
     GLint uniLightPosition = program.uniform("lightPosition");
-    glUniform3fv(uniLightPosition, 1, glm::value_ptr(light.getPosition())); 
+    glUniform3fv(uniLightPosition, 1, glm::value_ptr(m_light.getPosition())); 
     for (auto&& obj : m_objs) {
         obj.drawShadowMapping(program);
     }
     m_depth_fbo.unbind();
 }
 
-void Geometry::draw(std::vector<Program>& programs, ViewControl& view_control, Texture skybox_texture) {
+void Geometry::getEnvTexture(std::vector<Program>& programs, ViewControl& view_control, Skybox& skybox) {
+    Texture skybox_texture = skybox.getTexture();
+    for (int cur = 0; cur < m_objs.size(); ++cur) {
+        if (m_objs[cur].getDisplayMode() != Object::MODE8) { continue; }
+        m_objs[cur].env_fbo.bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        std::vector<glm::mat4> envVPMatrices = m_objs[cur].getEnvVPMatrices();
+        for(unsigned int i = 0; i < 6; i++) {
+            GLenum face = GL_TEXTURE_CUBE_MAP_POSITIVE_X + i;
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, face, m_objs[cur].env_texture.id, 0);
+            m_objs[cur].env_fbo.check();
+            // BindViewMatrix(lightViewMatrices[i]);
+            glDepthFunc(GL_LEQUAL);
+            skybox.bind();
+            skybox.drawEnvMapping(programs[SKYBOX], view_control, envVPMatrices[i]);
+            glDepthFunc(GL_LESS);
+            this->bind();
+            for (int other = 0; other < m_objs.size(); ++other) {
+                if (other == cur) { continue; }
+                m_objs[other].drawEnvMapping(programs, m_light, view_control, m_depth_texture, skybox_texture, envVPMatrices[i]);
+            }
+        }
+        m_objs[cur].env_fbo.unbind();
+    }
+}
+
+void Geometry::draw(std::vector<Program>& programs, ViewControl& view_control, Skybox& skybox) {
+    Texture skybox_texture = skybox.getTexture();
     glViewport(0, 0, 1024, 1024);
-    getShadowTexture(programs[SHADOW], m_light, view_control);
+    getShadowTexture(programs[SHADOW], view_control);
+    glViewport(0, 0, Object::s_env_height, Object::s_env_width);
+    getEnvTexture(programs, view_control, skybox);
     glViewport(0, 0, view_control.screenWidth(), view_control.screenHeight());
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     for (auto&& obj : m_objs) {
-        obj.draw(programs, m_light, view_control, m_depth_texture, skybox_texture);
+        if (obj.getDisplayMode() == Object::MODE8) {
+            obj.draw(programs, m_light, view_control, m_depth_texture, obj.env_texture);
+        } else {
+            obj.draw(programs, m_light, view_control, m_depth_texture, skybox_texture);
+        }
     }
 }
 
@@ -447,5 +540,7 @@ Object& Geometry::operator[](size_t index) {
 void Geometry::redShadow() {
     red_shadow = !red_shadow;
 }
+
+
 
 }  // CSGY6533

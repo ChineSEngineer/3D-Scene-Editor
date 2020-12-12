@@ -52,13 +52,17 @@ void Skybox::configCubeMap() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
-void Skybox::draw(Program& program, ViewControl& view_control) {
+void Skybox::draw(Program& program, ViewControl& view_control, bool isEnvMap) {
     program.bind();
-    GLint uniProjection = program.uniform("projection");
-    glUniformMatrix4fv(uniProjection, 1, GL_FALSE, glm::value_ptr(view_control.getProjMatrix()));
-    GLint uniView = program.uniform("view");
-    glm::mat4 view = glm::mat4(glm::mat3(view_control.getViewMatrix()));
-    glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
+
+    glm::mat4 VPMatrix;
+    if (isEnvMap) {
+        VPMatrix = m_envVPMatrix;
+    } else {
+        VPMatrix = view_control.getProjMatrix() * glm::mat4(glm::mat3(view_control.getViewMatrix()));
+    }
+    GLint uniVPMatrix = program.uniform("VPMatrix");
+    glUniformMatrix4fv(uniVPMatrix, 1, GL_FALSE, glm::value_ptr(VPMatrix));
     GLint uniAR = program.uniform("AspectRatioMatrix");
     glUniformMatrix4fv(uniAR, 1, GL_FALSE, glm::value_ptr(view_control.getAspectRatioMatrix()));
     glActiveTexture(GL_TEXTURE0);
@@ -66,6 +70,11 @@ void Skybox::draw(Program& program, ViewControl& view_control) {
 
     program.bindVertexAttribArray("position",m_vbo);
     glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
+}
+
+void Skybox::drawEnvMapping(Program& program, ViewControl& view_control, glm::mat4& envVPMatrix) {
+    m_envVPMatrix = envVPMatrix;
+    draw(program, view_control, true);
 }
 
 Texture Skybox::getTexture() const {
@@ -117,12 +126,12 @@ std::vector<glm::vec3> Skybox::m_vertices = {
 };
 
 std::vector<std::string> Skybox::m_images = {
-    "../../data/day_posx.jpg",
-    "../../data/day_negx.jpg",
-    "../../data/day_posy.jpg",
-    "../../data/day_negy.jpg",
-    "../../data/day_posz.jpg",
-    "../../data/day_negz.jpg"
+    "../../data/night_posx.png",
+    "../../data/night_negx.png",
+    "../../data/night_posy.png",
+    "../../data/night_negy.png",
+    "../../data/night_posz.png",
+    "../../data/night_negz.png"
 };
 
 }  // CSGY6533

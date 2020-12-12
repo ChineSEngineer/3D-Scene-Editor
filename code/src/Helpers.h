@@ -151,7 +151,9 @@ class FrameBufferObject {
     void bind();
     void unbind();
     void free();
+    void check();
     void attach_depth_texture(Texture& texture);
+    void attach_color_texture(Texture& texture);
  private:
     GLuint id;
 };

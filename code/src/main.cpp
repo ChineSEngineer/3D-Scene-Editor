@@ -160,9 +160,6 @@ int main(void)
     glUniform1i(uniSkybox, 1);
 
     programs[SHADOW] = ProgramFactory::createShadowShader("");
-    programs[SHADOW].bind();
-    uniDepthMap = programs[SHADOW].uniform("depthMap");
-    glUniform1i(uniDepthMap, 0);
 
     programs[SKYBOX] = ProgramFactory::createSkyboxShader("outColor");
     programs[SKYBOX].bind();
@@ -221,7 +218,7 @@ int main(void)
 
 
         geometry.bind();
-        geometry.draw(programs, view_control, skybox.getTexture());
+        geometry.draw(programs, view_control, skybox);
 
         glDepthFunc(GL_LEQUAL);
         //glDepthMask(GL_FALSE);

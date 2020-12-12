@@ -17,16 +17,32 @@ uniform vec3 eyePosition;
 uniform vec3 lightPosition; 
 uniform samplerCube skybox;
 
-
+vec3 gridSamplingDisk[20] = vec3[]
+(
+   vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
+   vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+   vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
+   vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
+   vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
+);
 
 float ShadowCalculation(vec3 fragPos) {
     vec3 fragToLight = fragPos - lightPosition;
-    float closestDepth = texture(depthMap, fragToLight).r;
-    closestDepth *= far_plane;
     float currentDepth = length(fragToLight);
-    float bias = 0.05;
-    float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.0;        
-    // FragColor = vec4(vec3(closestDepth / far_plane), 1.0);    
+
+    float shadow = 0.0;
+    float bias = 0.22;
+    int samples = 20;
+
+    float viewDistance = length(eyePosition - fragPos);
+    float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
+    for(int i = 0; i < samples; ++i) {
+        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
+        closestDepth *= far_plane;   // undo mapping [0;1]
+        if(currentDepth - bias > closestDepth)
+            shadow += 1.0;
+    }
+    shadow /= float(samples);
         
     return shadow;
 }
@@ -53,7 +69,7 @@ void phongLighting() {
     float shadow = ShadowCalculation(fragPosition);
 
     vec3 result;
-    if (red_shadow && shadow == 1.0) {
+    if (red_shadow && shadow != 0.0) {
         result = vec3(1.0, 0.0, 0.0);
     } else {
         result = (ambient + (1 - shadow) * (diffuse + specular)) * color;
@@ -72,7 +88,7 @@ void mirrorLighting() {
     float shadow = ShadowCalculation(fragPosition);
 
     vec3 result;
-    if (red_shadow && shadow == 1.0) {
+    if (red_shadow && shadow != 0.0) {
         result = vec3(1.0, 0.0, 0.0);
     } else {
         result = (ambient + (1 - shadow)) * texture_color;
@@ -92,7 +108,7 @@ void refractLighting() {
     float shadow = ShadowCalculation(fragPosition);
 
     vec3 result;
-    if (red_shadow && shadow == 1.0) {
+    if (red_shadow && shadow != 0.0) {
         result = vec3(1.0, 0.0, 0.0);
     } else {
         result = (ambient + (1 - shadow)) * texture_color;

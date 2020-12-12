@@ -155,6 +155,9 @@ void MoveState::keyboardCb(int key, int action) {
             case GLFW_KEY_M:
                 m_geometry[m_selected].setDisplayMode(Object::MODE7);
                 break;
+            case GLFW_KEY_LEFT_SHIFT:
+                m_geometry[m_selected].setDisplayMode(Object::MODE8);
+                break;
             #define SET_OBJECT_COLOR(xx) \
                 case GLFW_KEY_ ##xx :   \
                     m_geometry[m_selected].color(provided_color[xx - 1]); \

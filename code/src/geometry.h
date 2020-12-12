@@ -4,12 +4,15 @@
 #include "Helpers.h"
 #include "view_control.h"
 #include "light.h"
+#include "skybox.h"
 
 #include <glm/glm.hpp> // glm::vec3
 #include <glm/vec3.hpp>
 
 
 namespace CSGY6533 {
+
+class Skybox;
 
 enum ShaderMode {
     WIREFRAME = 0,
@@ -30,15 +33,19 @@ class Object {
         MODE5 = 4,  // PHONG + REFRACTION
         MODE6 = 5,  // FLAT + MIRROR
         MODE7 = 6,  // FLAT + REFRACTION
+        MODE8 = 7,  // PHONG + MIRROR(DYNAMIC)
     };
     Object();
     void free();
-    void draw(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
+    void draw(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture, bool isEnvMap = false);
+    void drawEnvMapping(std::vector<Program>& programs, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture, glm::mat4& VPMatrix);
     void drawShadowMapping(Program& program);
     void loadFromOffFile(const std::string& path);
     void unitize();
     void update();
+    void configEnvMap();
     void setDisplayMode(DisplayMode mode);
+    DisplayMode getDisplayMode();
 
     void translate(float x, float y, float z);
     void rotate(float x, float y, float z);
@@ -50,13 +57,13 @@ class Object {
 
     glm::mat4 getModelMatrix() const;
     glm::mat3 getNormalMatrix() const;
-
+    std::vector<glm::mat4> getEnvVPMatrices() const;
  private:
     static std::pair<bool, float> intersectTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
                                   const glm::vec3& e, const glm::vec3& d, float near, float far);
     void drawWireframe(Program& program, Light& light, ViewControl& view_control);
-    void setPhongShading(Program& program, ViewControl& view_control);
-    void setFlatShading(Program& program, ViewControl& view_control);
+    void setPhongShading(Program& program, ViewControl& view_control, bool isEnvMap);
+    void setFlatShading(Program& program, ViewControl& view_control, bool isEnvMap);
     void setPhongLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture);
     void setMirrorLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
     void setRefractLighting(Program& program, Light& light, ViewControl& view_control, Texture& depth_texture, Texture& skybox_texture);
@@ -68,10 +75,18 @@ class Object {
     std::vector<float> m_model;  // 0,1,2 - translate, 3,4,5 - rotate, 6 - sacle
     glm::vec3 m_color;  // 0,1,2 - rgb
     DisplayMode m_mode;
-    // VertexBufferObject m_normal;
+    
     VertexBufferObject m_vbo;
     ElementBufferObject m_ebo;
     VertexBufferObject m_nbo;   // vbo for vertex normal
+       
+ public:
+    FrameBufferObject env_fbo;
+    Texture env_texture;
+    static const int s_env_width = 2000;
+    static const int s_env_height = 2000;
+ private:
+    glm::mat4 m_envVPMatrix;
 
 };
 
@@ -83,7 +98,7 @@ class Geometry {
     void bind();
     void configShadowMap();
     size_t size() const;
-    void draw(std::vector<Program>& programs, ViewControl& view_control, Texture skybox_texture);
+    void draw(std::vector<Program>& programs, ViewControl& view_control, Skybox& skybox);
     void addObjFromOffFile(const std::string& path);
 
     void addBunny();
@@ -99,7 +114,8 @@ class Geometry {
     Light& getLight() { return m_light; }
     void redShadow();
  private:
-    void getShadowTexture(Program& program, Light& light, ViewControl& view_control);
+    void getShadowTexture(Program& program, ViewControl& view_control);
+    void getEnvTexture(std::vector<Program>& programs, ViewControl& view_control, Skybox& skybox);
  private:
     std::vector<Object> m_objs;
     VertexArrayObject m_vao;

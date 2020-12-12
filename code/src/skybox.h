@@ -15,7 +15,8 @@ class Skybox {
     void bind();
     void update();
     void configCubeMap();
-    void draw(Program& program, ViewControl& view_control);
+    void draw(Program& program, ViewControl& view_control, bool isEnvMap = false);
+    void drawEnvMapping(Program& program, ViewControl& view_control, glm::mat4& envVPMatrix);
     Texture getTexture() const;
  private:
     VertexArrayObject m_vao;
@@ -23,6 +24,8 @@ class Skybox {
     Texture m_texture;
     static std::vector<glm::vec3> m_vertices;
     static std::vector<std::string> m_images;
+
+    glm::mat4 m_envVPMatrix;
 };
 
 
