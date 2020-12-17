@@ -46,7 +46,7 @@ void Object::draw(std::vector<Program>& programs, Light& light, ViewControl& vie
         setPhongShading(programs[PHONG], view_control, isEnvMap);
         setPhongLighting(programs[PHONG], light, view_control, depth_texture);
         simpleDraw();
-    } else if (m_mode == MODE4) {
+    } else if (m_mode == MODE4 || m_mode == MODE8) {
         setPhongShading(programs[PHONG], view_control, isEnvMap);
         setMirrorLighting(programs[PHONG], light, view_control, depth_texture, skybox_texture);
         simpleDraw();
@@ -54,7 +54,7 @@ void Object::draw(std::vector<Program>& programs, Light& light, ViewControl& vie
         setPhongShading(programs[PHONG], view_control, isEnvMap);
         setRefractLighting(programs[PHONG], light, view_control, depth_texture, skybox_texture);
         simpleDraw();
-    } else if (m_mode == MODE6 || m_mode == MODE8) {
+    } else if (m_mode == MODE6) {
         setFlatShading(programs[FLAT], view_control, isEnvMap);
         setMirrorLighting(programs[FLAT], light, view_control, depth_texture, skybox_texture);
         simpleDraw();
